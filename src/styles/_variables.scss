@@ -1,0 +1,76 @@
+// Color Variables
+$primary-color: #4E2780;
+$primary-light: #6B46A3;
+$primary-dark: #3A1D60;
+$secondary-color: #FF6B35;
+$success-color: #4CAF50;
+$error-color: #F44336;
+$warning-color: #FF9800;
+$info-color: #2196F3;
+
+// Background Colors
+$background-primary: #FFFFFF;
+$background-secondary: #F5F5F5;
+$background-card: #FFFFFF;
+$background-gradient: linear-gradient(135deg, $primary-color 0%, $primary-light 100%);
+
+// Text Colors
+$text-primary: #212121;
+$text-secondary: #757575;
+$text-disabled: #BDBDBD;
+$text-white: #FFFFFF;
+
+// Border and Divider
+$border-color: #E0E0E0;
+$divider-color: #EEEEEE;
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-xl: 16px;
+
+// Shadows
+$shadow-light: 0px 2px 4px rgba(0, 0, 0, 0.1);
+$shadow-medium: 0px 4px 8px rgba(0, 0, 0, 0.12);
+$shadow-heavy: 0px 8px 16px rgba(0, 0, 0, 0.15);
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Breakpoints
+$mobile-sm: 320px;
+$mobile-md: 375px;
+$mobile-lg: 414px;
+$tablet: 768px;
+$desktop: 1024px;
+$desktop-lg: 1440px;
+
+// Z-index
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+
+// Animation
+$transition-fast: 0.15s ease-in-out;
+$transition-base: 0.3s ease-in-out;
+$transition-slow: 0.5s ease-in-out;
+
+// Form Elements
+$input-height: 48px;
+$input-padding: 12px 16px;
+$button-height: 48px;
+$button-padding: 12px 24px;
+
+// Card
+$card-padding: 16px;
+$card-margin: 16px;
+$card-border-radius: $border-radius-lg;
+$card-shadow: $shadow-light;
