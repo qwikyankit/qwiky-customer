@@ -140,7 +140,6 @@ export const PaymentPage: React.FC = () => {
         return `Processing your payment of ₹${total}`;
     }
   };
-  };
   const getPaymentModeDisplay = () => {
     switch (paymentMode) {
       case 'mock':
