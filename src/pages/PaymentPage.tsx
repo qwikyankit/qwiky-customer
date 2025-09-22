@@ -53,6 +53,7 @@ export const PaymentPage: React.FC = () => {
       console.log('Payment service test result:', result);
     });
   }, []);
+
   const handlePayment = async () => {
     try {
       setIsProcessing(true);
@@ -130,6 +131,7 @@ export const PaymentPage: React.FC = () => {
       }
     });
   };
+
   const getProcessingMessage = () => {
     switch (paymentStep) {
       case 'processing':
@@ -140,6 +142,7 @@ export const PaymentPage: React.FC = () => {
         return `Processing your payment of ₹${total}`;
     }
   };
+
   const getPaymentModeDisplay = () => {
     switch (paymentMode) {
       case 'mock':
@@ -152,6 +155,7 @@ export const PaymentPage: React.FC = () => {
         return { label: 'Unknown', color: 'default' as const };
     }
   };
+
   return (
     <Box>
       <Header title="Payment" showBackButton />
