@@ -8,10 +8,11 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
+  Chip
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Payment, CheckCircle } from '@mui/icons-material';
+import { Payment, CheckCircle, Info } from '@mui/icons-material';
 import { Header } from '../components/common/Header';
 import { paymentService } from '../services/paymentService';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +24,8 @@ export const PaymentPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentStep, setPaymentStep] = useState<'ready' | 'processing' | 'verifying'>('ready');
+  const [paymentMode, setPaymentMode] = useState<string>('');
+  const [serviceTest, setServiceTest] = useState<{ success: boolean; message: string } | null>(null);
 
   const { service, bookingType, scheduledDate, scheduledTime, locality, appliedCoupon, total, bookingData } = location.state as {
     service: {
@@ -41,11 +44,13 @@ export const PaymentPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Test payment service on component mount
-    paymentService.testPaymentService().then(isWorking => {
-      if (!isWorking) {
-        console.warn('Payment service test failed, will use mock payments');
-      }
+    // Get payment mode and test service on component mount
+    const mode = paymentService.getPaymentMode();
+    setPaymentMode(mode);
+    
+    paymentService.testPaymentService().then(result => {
+      setServiceTest(result);
+      console.log('Payment service test result:', result);
     });
   }, []);
   const handlePayment = async () => {
@@ -71,7 +76,7 @@ export const PaymentPage: React.FC = () => {
       const sessionId = await paymentService.createPaymentSession(paymentData);
       console.log('Payment session created:', sessionId);
       
-      // Process payment with Cashfree
+      // Process payment (mock or real)
       await paymentService.processPayment(sessionId);
       console.log('Payment processing completed');
       
@@ -108,9 +113,9 @@ export const PaymentPage: React.FC = () => {
     }
   };
 
-  const handleSkipPayment = () => {
-    // For demo purposes, allow skipping payment
-    console.log('Skipping payment for demo');
+  const handleDemoMode = () => {
+    // Demo mode - skip payment
+    console.log('Using demo mode - skipping payment');
     navigate('/booking-confirmed', {
       state: {
         service,
@@ -124,6 +129,7 @@ export const PaymentPage: React.FC = () => {
         otp: bookingData?.otp || '1234'
       }
     });
+  };
   const getProcessingMessage = () => {
     switch (paymentStep) {
       case 'processing':
@@ -131,22 +137,54 @@ export const PaymentPage: React.FC = () => {
       case 'verifying':
         return 'Verifying payment status...';
       default:
-        return `Please wait while we process your payment of ₹${total}`;
+        return `Processing your payment of ₹${total}`;
     }
   };
+  };
+  const getPaymentModeDisplay = () => {
+    switch (paymentMode) {
+      case 'mock':
+        return { label: 'Demo Mode', color: 'info' as const };
+      case 'cashfree-test':
+        return { label: 'Test Mode', color: 'warning' as const };
+      case 'cashfree-live':
+        return { label: 'Live Mode', color: 'success' as const };
+      default:
+        return { label: 'Unknown', color: 'default' as const };
+    }
   };
   return (
     <Box>
       <Header title="Payment" showBackButton />
       
       <Container maxWidth="sm" sx={{ py: 3 }}>
+        {/* Payment Mode Indicator */}
+        <Box display="flex" justifyContent="center" mb={2}>
+          <Chip
+            icon={<Info />}
+            label={`Payment ${getPaymentModeDisplay().label}`}
+            color={getPaymentModeDisplay().color}
+            variant="outlined"
+          />
+        </Box>
+
+        {/* Service Test Result */}
+        {serviceTest && (
+          <Alert 
+            severity={serviceTest.success ? 'success' : 'warning'} 
+            sx={{ mb: 2 }}
+          >
+            <Typography variant="subtitle2" mb={1}>
+              Payment Service Status
+            </Typography>
+            {serviceTest.message}
+          </Alert>
+        )}
+
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             <Typography variant="subtitle2" mb={1}>Payment Failed</Typography>
             {error}
-            <Typography variant="body2" sx={{ mt: 1, opacity: 0.8 }}>
-              You can try again or use the demo mode below.
-            </Typography>
           </Alert>
         )}
         
@@ -184,7 +222,7 @@ export const PaymentPage: React.FC = () => {
                   }}
                   startIcon={<Payment />}
                 >
-                  Pay ₹{total}
+                  {paymentMode === 'mock' ? 'Simulate Payment' : `Pay ₹${total}`}
                 </Button>
                 
                 <Divider sx={{ my: 2 }}>
@@ -197,7 +235,7 @@ export const PaymentPage: React.FC = () => {
                   fullWidth
                   variant="outlined"
                   size="large"
-                  onClick={handleSkipPayment}
+                  onClick={handleDemoMode}
                   sx={{
                     py: 2,
                     borderRadius: 3,
@@ -206,11 +244,14 @@ export const PaymentPage: React.FC = () => {
                   }}
                   startIcon={<CheckCircle />}
                 >
-                  Skip Payment (Demo Mode)
+                  Continue Without Payment (Demo)
                 </Button>
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                  Demo mode allows you to test the booking flow without payment
+                  {paymentMode === 'mock' 
+                    ? 'Currently in demo mode - no real payment will be processed'
+                    : 'Demo option allows testing the booking flow without payment'
+                  }
                 </Typography>
               </>
             )}
