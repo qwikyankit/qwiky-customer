@@ -62,12 +62,51 @@ REACT_APP_CASHFREE_ENV=TEST
 
 ## Payment Integration
 
-This app uses Cashfree Payment Gateway. To set up payments:
+This app supports multiple payment modes:
 
-1. Create a Cashfree account at [https://www.cashfree.com/](https://www.cashfree.com/)
-2. Get your App ID and Secret Key from the Cashfree dashboard
-3. Update the environment variables with your credentials
-4. For production, change `REACT_APP_CASHFREE_ENV` to `PROD`
+### 🔧 Payment Modes
+
+1. **Mock Mode** (`VITE_PAYMENT_MODE=mock`)
+   - Simulates payment flow without real transactions
+   - Perfect for development and testing
+   - No external API calls required
+
+2. **Cashfree Test Mode** (`VITE_PAYMENT_MODE=cashfree-test`)
+   - Uses Cashfree sandbox environment
+   - Requires backend API integration
+   - Test with real Cashfree flow but no actual money
+
+3. **Cashfree Live Mode** (`VITE_PAYMENT_MODE=cashfree-live`)
+   - Uses Cashfree production environment
+   - Processes real payments
+   - Requires production credentials
+
+### 🔧 Setup Instructions
+
+1. **Create Cashfree Account**: [https://www.cashfree.com/](https://www.cashfree.com/)
+2. **Get Credentials**: App ID and Secret Key from Cashfree dashboard
+3. **Configure Environment**:
+   ```env
+   # Choose payment mode
+   VITE_PAYMENT_MODE=cashfree-test
+   
+   # Backend credentials
+   CASHFREE_APP_ID=your_test_app_id
+   CASHFREE_SECRET_KEY=your_test_secret_key
+   CASHFREE_ENV=TEST
+   ```
+4. **Deploy Backend APIs**: The `/api/payment/` endpoints need to be deployed
+5. **Test Integration**: Use test mode first, then switch to live
+
+### 🔧 Backend API Requirements
+
+The app requires these backend endpoints:
+
+- `POST /api/payment/create-order` - Create Cashfree payment session
+- `GET /api/payment/verify/{orderId}` - Verify payment status  
+- `POST /api/payment/webhook` - Handle Cashfree webhooks
+
+Backend files are provided in the `/api/payment/` directory.
 
 ## Backend API Requirements
 
