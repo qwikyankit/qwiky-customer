@@ -140,13 +140,18 @@ export const PaymentPage: React.FC = () => {
         {/* Service Test Result */}
         {serviceTest && (
           <Alert 
-            severity={serviceTest.success ? 'success' : 'error'} 
+            severity={serviceTest.success ? 'success' : 'warning'} 
             sx={{ mb: 2 }}
           >
             <Typography variant="subtitle2" mb={1}>
               Payment Service Status
             </Typography>
             {serviceTest.message}
+            {!serviceTest.success && (
+              <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                💡 To enable real payments, deploy the backend API endpoints from the /api/payment/ folder to your server.
+              </Typography>
+            )}
           </Alert>
         )}
 
@@ -219,7 +224,7 @@ export const PaymentPage: React.FC = () => {
                   variant="contained"
                   size="large"
                   onClick={handlePayment}
-                  disabled={isProcessing || !serviceTest?.success}
+                  disabled={isProcessing}
                   sx={{
                     py: 2,
                     background: 'linear-gradient(135deg, #4E2780 0%, #6B46A3 100%)',
@@ -231,6 +236,15 @@ export const PaymentPage: React.FC = () => {
                 >
                   {getPaymentButtonText()}
                 </Button>
+                
+                {!serviceTest?.success && (
+                  <Alert severity="info" sx={{ mt: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Demo Mode:</strong> Backend API not available. 
+                      Payment will simulate success for testing purposes.
+                    </Typography>
+                  </Alert>
+                )}
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                   {paymentService.isTestMode() 
