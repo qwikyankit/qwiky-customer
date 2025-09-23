@@ -16,16 +16,19 @@ interface CashfreeOrderResponse {
   payment_session_id: string;
   order_id: string;
   order_status: string;
+  cashfree_order_id?: string;
 }
 
 class PaymentService {
   private cashfree: any = null;
   private paymentMode: string;
   private isProduction: boolean;
+  private backendBaseUrl: string;
 
   constructor() {
     this.paymentMode = import.meta.env.VITE_PAYMENT_MODE || 'mock';
     this.isProduction = import.meta.env.VITE_CASHFREE_ENV === 'PRODUCTION';
+    this.backendBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
     this.initializeCashfree();
   }
 
@@ -78,48 +81,58 @@ class PaymentService {
   }
 
   private async createCashfreePaymentSession(paymentData: PaymentRequest): Promise<string> {
-    console.log('Using Cashfree payment flow');
+    console.log('Creating real Cashfree payment session');
     
     try {
+      // Prepare the order data for backend API
+      const orderData = {
+        order_id: paymentData.orderId,
+        order_amount: paymentData.amount,
+        order_currency: paymentData.currency,
+        customer_details: {
+          customer_id: paymentData.customerDetails.customerId,
+          customer_phone: paymentData.customerDetails.customerPhone,
+          customer_name: paymentData.customerDetails.customerName || 'Customer',
+          customer_email: paymentData.customerDetails.customerEmail || 'customer@example.com'
+        },
+        order_meta: {
+          return_url: paymentData.returnUrl || `${window.location.origin}/payment/callback`,
+          notify_url: paymentData.notifyUrl || `${this.backendBaseUrl}/api/payment/webhook`
+        }
+      };
+
+      console.log('Calling backend API to create Cashfree order:', orderData);
+
       // Call backend API to create Cashfree order
-      const response = await fetch('/api/payment/create-order', {
+      const response = await fetch(`${this.backendBaseUrl}/api/payment/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          order_id: paymentData.orderId,
-          order_amount: paymentData.amount,
-          order_currency: paymentData.currency,
-          customer_details: {
-            customer_id: paymentData.customerDetails.customerId,
-            customer_phone: paymentData.customerDetails.customerPhone,
-            customer_name: paymentData.customerDetails.customerName || 'Customer',
-            customer_email: paymentData.customerDetails.customerEmail || 'customer@example.com'
-          },
-          order_meta: {
-            return_url: paymentData.returnUrl || `${window.location.origin}/payment/callback`,
-            notify_url: paymentData.notifyUrl || `${window.location.origin}/api/payment/webhook`
-          }
-        })
+        body: JSON.stringify(orderData)
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create payment order');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Backend API error:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to create payment order`);
       }
 
-      const orderData: CashfreeOrderResponse = await response.json();
-      console.log('Cashfree order created:', orderData);
+      const orderResponse: CashfreeOrderResponse = await response.json();
+      console.log('Cashfree order created successfully:', orderResponse);
       
-      return orderData.payment_session_id;
+      if (!orderResponse.payment_session_id) {
+        throw new Error('Invalid response: payment_session_id not found');
+      }
+
+      return orderResponse.payment_session_id;
     } catch (error) {
       console.error('Error creating Cashfree payment session:', error);
       throw error;
     }
   }
 
-  async processPayment(sessionId: string): Promise<void> {
+  async processPayment(sessionId: string, paymentData?: PaymentRequest): Promise<void> {
     try {
       console.log('Processing payment with session:', sessionId, 'Mode:', this.paymentMode);
 
@@ -129,7 +142,7 @@ class PaymentService {
         
         case 'cashfree-test':
         case 'cashfree-live':
-          return this.processCashfreePayment(sessionId);
+          return this.processCashfreePayment(sessionId, paymentData);
         
         default:
           throw new Error(`Unsupported payment mode: ${this.paymentMode}`);
@@ -155,20 +168,29 @@ class PaymentService {
     }
   }
 
-  private async processCashfreePayment(sessionId: string): Promise<void> {
+  private async processCashfreePayment(sessionId: string, paymentData?: PaymentRequest): Promise<void> {
     if (!this.cashfree) {
-      throw new Error('Cashfree SDK not initialized');
+      // Try to initialize if not already done
+      await this.initializeCashfree();
+      if (!this.cashfree) {
+        throw new Error('Cashfree SDK not initialized. Please check if Cashfree script is loaded.');
+      }
     }
 
-    console.log('Processing Cashfree payment');
+    console.log('Processing real Cashfree payment with session:', sessionId);
 
-    // Use the checkout options format you specified
+    // Prepare checkout options as per your specification
     const checkoutOptions = {
       paymentSessionId: sessionId,
-      returnUrl: `${window.location.origin}/payment/callback`
+      returnUrl: paymentData?.returnUrl || `${window.location.origin}/payment/callback`
     };
 
+    console.log('Cashfree checkout options:', checkoutOptions);
+
     const cashfreeEnvironment = this.isProduction ? 'production' : 'sandbox';
+    console.log('Using Cashfree environment:', cashfreeEnvironment);
+
+    // Initialize Cashfree with correct environment
     const cashfree = window.Cashfree({ mode: cashfreeEnvironment });
 
     return new Promise((resolve, reject) => {
@@ -179,7 +201,7 @@ class PaymentService {
           console.error('Cashfree payment error:', result.error);
           reject(new Error(result.error.message || 'Payment failed'));
         } else if (result.redirect) {
-          console.log('Redirection to Cashfree');
+          console.log('Redirection to Cashfree payment page');
           // The redirect will happen automatically
           // We resolve here as the redirect is successful
           resolve();
@@ -229,8 +251,10 @@ class PaymentService {
 
   private async verifyCashfreePayment(orderId: string): Promise<boolean> {
     try {
+      console.log('Verifying real Cashfree payment for order:', orderId);
+
       // Call backend API to verify payment with Cashfree
-      const response = await fetch(`/api/payment/verify/${orderId}`, {
+      const response = await fetch(`${this.backendBaseUrl}/api/payment/verify/${orderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -238,13 +262,19 @@ class PaymentService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to verify payment');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Payment verification API error:', errorData);
+        throw new Error(errorData.message || 'Failed to verify payment');
       }
 
       const verificationData = await response.json();
       console.log('Cashfree payment verification result:', verificationData);
       
-      return verificationData.payment_status === 'SUCCESS';
+      const isSuccess = verificationData.payment_status === 'SUCCESS' || 
+                       verificationData.order_status === 'PAID';
+      
+      console.log('Payment verification result:', isSuccess);
+      return isSuccess;
     } catch (error) {
       console.error('Error verifying Cashfree payment:', error);
       return false;
@@ -259,30 +289,58 @@ class PaymentService {
   // Check if payment service is properly configured
   async testPaymentService(): Promise<{ success: boolean; mode: string; message: string }> {
     try {
-      const testData: PaymentRequest = {
-        orderId: 'TEST_ORDER_123',
-        amount: 100,
-        currency: 'INR',
-        customerDetails: {
-          customerId: 'test_customer',
-          customerPhone: '+919876543210',
-          customerName: 'Test User',
-          customerEmail: 'test@example.com'
-        }
-      };
-
-      const sessionId = await this.createPaymentSession(testData);
+      console.log('Testing payment service configuration...');
       
+      // Test different aspects based on payment mode
+      if (this.paymentMode === 'mock') {
+        return {
+          success: true,
+          mode: this.paymentMode,
+          message: 'Mock payment mode - ready for testing'
+        };
+      }
+
+      // For Cashfree modes, test if SDK is available
+      if (!window.Cashfree) {
+        return {
+          success: false,
+          mode: this.paymentMode,
+          message: 'Cashfree SDK not loaded. Please check if the script is included.'
+        };
+      }
+
+      // Test backend connectivity
+      try {
+        const testResponse = await fetch(`${this.backendBaseUrl}/api/payment/test`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!testResponse.ok) {
+          return {
+            success: false,
+            mode: this.paymentMode,
+            message: `Backend API not accessible at ${this.backendBaseUrl}`
+          };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          mode: this.paymentMode,
+          message: `Backend API connection failed: ${error.message}`
+        };
+      }
+
       return {
         success: true,
         mode: this.paymentMode,
-        message: `Payment service test successful in ${this.paymentMode} mode. Session ID: ${sessionId}`
+        message: `${this.paymentMode} mode configured and ready`
       };
     } catch (error) {
       return {
         success: false,
         mode: this.paymentMode,
-        message: `Payment service test failed: ${error.message}`
+        message: `Configuration test failed: ${error.message}`
       };
     }
   }
@@ -292,7 +350,7 @@ class PaymentService {
     try {
       console.log('Handling payment callback:', callbackData);
       
-      const { order_id, order_status, payment_status } = callbackData;
+      const { order_id, order_status, payment_status, payment_message } = callbackData;
       
       if (payment_status === 'SUCCESS' && order_status === 'PAID') {
         return {
@@ -300,11 +358,23 @@ class PaymentService {
           orderId: order_id,
           message: 'Payment completed successfully'
         };
+      } else if (payment_status === 'FAILED') {
+        return {
+          success: false,
+          orderId: order_id,
+          message: payment_message || 'Payment failed'
+        };
+      } else if (payment_status === 'USER_DROPPED') {
+        return {
+          success: false,
+          orderId: order_id,
+          message: 'Payment cancelled by user'
+        };
       } else {
         return {
           success: false,
           orderId: order_id,
-          message: `Payment failed. Status: ${payment_status}, Order Status: ${order_status}`
+          message: `Payment status: ${payment_status}, Order status: ${order_status}`
         };
       }
     } catch (error) {

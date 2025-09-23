@@ -26,6 +26,7 @@ export const PaymentPage: React.FC = () => {
   const [paymentStep, setPaymentStep] = useState<'ready' | 'processing' | 'verifying'>('ready');
   const [paymentMode, setPaymentMode] = useState<string>('');
   const [serviceTest, setServiceTest] = useState<{ success: boolean; message: string } | null>(null);
+  const [sessionId, setSessionId] = useState<string>('');
 
   const { service, bookingType, scheduledDate, scheduledTime, locality, appliedCoupon, total, bookingData } = location.state as {
     service: {
@@ -76,9 +77,10 @@ export const PaymentPage: React.FC = () => {
       console.log('Starting payment process with data:', paymentData);
       const sessionId = await paymentService.createPaymentSession(paymentData);
       console.log('Payment session created:', sessionId);
+      setSessionId(sessionId);
       
       // Process payment (mock or real)
-      await paymentService.processPayment(sessionId);
+      await paymentService.processPayment(sessionId, paymentData);
       console.log('Payment processing completed');
       
       setPaymentStep('verifying');
@@ -225,7 +227,9 @@ export const PaymentPage: React.FC = () => {
                   }}
                   startIcon={<Payment />}
                 >
-                  {paymentMode === 'mock' ? 'Simulate Payment' : `Pay ₹${total}`}
+                  {paymentMode === 'mock' ? 'Simulate Payment' : 
+                   paymentMode === 'cashfree-test' ? `Pay ₹${total} (Test Mode)` :
+                   `Pay ₹${total}`}
                 </Button>
                 
                 <Divider sx={{ my: 2 }}>
@@ -253,10 +257,21 @@ export const PaymentPage: React.FC = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                   {paymentMode === 'mock' 
                     ? 'Currently in demo mode - no real payment will be processed'
+                    : paymentMode === 'cashfree-test'
+                    ? 'Test mode - uses Cashfree sandbox environment with test cards'
                     : 'Demo option allows testing the booking flow without payment'
                   }
                 </Typography>
               </>
+            )}
+            
+            {/* Debug Info for Development */}
+            {process.env.NODE_ENV === 'development' && sessionId && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="caption">
+                  Debug: Session ID - {sessionId}
+                </Typography>
+              </Alert>
             )}
           </CardContent>
         </Card>

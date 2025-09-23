@@ -1,7 +1,14 @@
 // Backend API endpoint for creating Cashfree payment orders
 // This would typically be deployed as a serverless function or Express.js route
 
-const crypto = require('crypto');
+// Add test endpoint for connectivity check
+async function testEndpoint(req, res) {
+  return res.status(200).json({
+    success: true,
+    message: 'Payment API is accessible',
+    environment: process.env.CASHFREE_ENV || 'TEST'
+  });
+}
 
 // Cashfree configuration
 const CASHFREE_CONFIG = {
@@ -96,6 +103,8 @@ async function createCashfreeOrder(req, res) {
     console.log('Creating Cashfree order:', {
       orderId: orderData.order_id,
       amount: orderData.order_amount,
+      currency: orderData.order_currency,
+      customerId: orderData.customer_details.customer_id,
       environment: isProduction ? 'production' : 'test'
     });
 
@@ -133,7 +142,8 @@ async function createCashfreeOrder(req, res) {
       payment_session_id: responseData.payment_session_id,
       order_id: responseData.order_id,
       order_status: responseData.order_status,
-      cashfree_order_id: responseData.cf_order_id
+      cashfree_order_id: responseData.cf_order_id,
+      environment: isProduction ? 'production' : 'sandbox'
     });
 
   } catch (error) {
@@ -149,6 +159,7 @@ async function createCashfreeOrder(req, res) {
 
 // Export for different deployment platforms
 module.exports = createCashfreeOrder;
+module.exports.testEndpoint = testEndpoint;
 
 // For Vercel
 module.exports.default = createCashfreeOrder;
