@@ -19,6 +19,16 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// GET /test - Test endpoint for order routes
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Order API working 🚀',
+    timestamp: new Date().toISOString(),
+    service: 'order-service'
+  });
+});
+
 // POST /api/orders - Create new booking order
 router.post('/', [
   body('userId').isUUID().withMessage('Valid User ID is required'),

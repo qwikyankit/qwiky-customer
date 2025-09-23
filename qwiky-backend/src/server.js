@@ -81,6 +81,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// API health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Backend is running 🚀',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    version: '1.0.0'
+  });
+});
+
 // API routes
 app.use('/api/payment', paymentRoutes);
 app.use('/api/user', userRoutes);
@@ -88,6 +99,14 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/address', addressRoutes);
 app.use('/api/slots', slotRoutes);
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
 
 // Error handling middleware
 app.use(notFound);

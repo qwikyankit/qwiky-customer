@@ -19,6 +19,16 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// GET /test - Test endpoint for user routes
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'User API working 🚀',
+    timestamp: new Date().toISOString(),
+    service: 'user-service'
+  });
+});
+
 // POST /api/user/signup
 router.post('/signup', [
   body('mobile').isMobilePhone('en-IN').withMessage('Valid Indian mobile number is required'),

@@ -18,6 +18,16 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// GET /test - Test endpoint for service routes
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Service API working 🚀',
+    timestamp: new Date().toISOString(),
+    service: 'service-api'
+  });
+});
+
 // GET /api/services
 router.get('/', async (req, res) => {
   try {

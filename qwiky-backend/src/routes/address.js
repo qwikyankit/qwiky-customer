@@ -19,6 +19,16 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// GET /test - Test endpoint for address routes
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Address API working 🚀',
+    timestamp: new Date().toISOString(),
+    service: 'address-service'
+  });
+});
+
 // POST /api/address - Add new address for a user
 router.post('/', [
   body('userId').isUUID().withMessage('Valid User ID is required'),

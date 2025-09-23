@@ -20,6 +20,17 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// GET /test - Test endpoint for payment routes
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Payment API working 🚀',
+    timestamp: new Date().toISOString(),
+    environment: process.env.CASHFREE_ENV || 'TEST',
+    service: 'payment-service'
+  });
+});
+
 // POST /api/payment/create-order
 router.post('/create-order', [
   body('orderId').notEmpty().withMessage('Order ID is required'),

@@ -18,6 +18,16 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+// GET /test - Test endpoint for slot routes
+router.get('/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Slot API working 🚀',
+    timestamp: new Date().toISOString(),
+    service: 'slot-service'
+  });
+});
+
 // GET /api/slots/:locality - Fetch available slots by locality
 router.get('/:locality', [
   param('locality').notEmpty().withMessage('Locality is required')
