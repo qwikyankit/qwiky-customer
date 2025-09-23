@@ -8,7 +8,6 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Divider,
   Chip
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -23,10 +22,9 @@ export const PaymentPage: React.FC = () => {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentStep, setPaymentStep] = useState<'ready' | 'processing' | 'verifying'>('ready');
+  const [paymentStep, setPaymentStep] = useState<'ready' | 'processing' | 'redirecting'>('ready');
   const [paymentMode, setPaymentMode] = useState<string>('');
   const [serviceTest, setServiceTest] = useState<{ success: boolean; message: string } | null>(null);
-  const [sessionId, setSessionId] = useState<string>('');
 
   const { service, bookingType, scheduledDate, scheduledTime, locality, appliedCoupon, total, bookingData } = location.state as {
     service: {
@@ -61,7 +59,7 @@ export const PaymentPage: React.FC = () => {
       setError(null);
       setPaymentStep('processing');
       
-      // Create payment session
+      // Prepare payment data
       const paymentData = {
         orderId: bookingData?.bookingId || `ORDER_${Date.now()}`,
         amount: total,
@@ -74,87 +72,53 @@ export const PaymentPage: React.FC = () => {
         }
       };
 
-      console.log('Starting payment process with data:', paymentData);
-      const sessionId = await paymentService.createPaymentSession(paymentData);
-      console.log('Payment session created:', sessionId);
-      setSessionId(sessionId);
+      console.log('Starting Cashfree payment process with data:', paymentData);
       
-      // Process payment (mock or real)
-      await paymentService.processPayment(sessionId, paymentData);
-      console.log('Payment processing completed');
+      // Step 1: Initiate payment (create order with backend)
+      const initiatePaymentResponse = await paymentService.initiatePayment(paymentData);
+      console.log('Payment initiated successfully:', initiatePaymentResponse);
       
-      setPaymentStep('verifying');
-      // Verify payment
-      const isVerified = await paymentService.verifyPayment(paymentData.orderId);
-      console.log('Payment verification result:', isVerified);
+      setPaymentStep('redirecting');
       
-      if (!isVerified) {
-        throw new Error('Payment verification failed');
-      }
+      // Step 2: Process payment (redirect to Cashfree)
+      await paymentService.processPayment(initiatePaymentResponse);
+      console.log('Redirecting to Cashfree checkout...');
       
-      console.log('Payment successful, navigating to confirmation');
-      // Navigate to confirmation page
-      navigate('/booking-confirmed', {
-        state: {
-          service,
-          bookingType,
-          scheduledDate,
-          scheduledTime,
-          locality,
-          appliedCoupon,
-          total,
-          bookingId: bookingData?.bookingId || 'KTGYTIHBVC6576',
-          otp: bookingData?.otp || '8208'
-        }
-      });
+      // Note: At this point, user will be redirected to Cashfree
+      // They will return via the callback URL
+      
     } catch (error) {
       console.error('Payment failed:', error);
       setError((error as Error).message || 'Payment processing failed');
       setPaymentStep('ready');
-    } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleDemoMode = () => {
-    // Demo mode - skip payment
-    console.log('Using demo mode - skipping payment');
-    navigate('/booking-confirmed', {
-      state: {
-        service,
-        bookingType,
-        scheduledDate,
-        scheduledTime,
-        locality,
-        appliedCoupon,
-        total: 0, // Free for demo
-        bookingId: bookingData?.bookingId || 'DEMO_BOOKING_123',
-        otp: bookingData?.otp || '1234'
-      }
-    });
   };
 
   const getProcessingMessage = () => {
     switch (paymentStep) {
       case 'processing':
-        return 'Processing your payment...';
-      case 'verifying':
-        return 'Verifying payment status...';
+        return 'Creating payment session...';
+      case 'redirecting':
+        return 'Redirecting to Cashfree...';
       default:
         return `Processing your payment of ₹${total}`;
     }
   };
 
   const getPaymentModeDisplay = () => {
-    switch (paymentMode) {
-      case 'mock':
-        return { label: 'Demo Mode', color: 'info' as const };
-      case 'cashfree-test':
-        return { label: 'Test Mode', color: 'warning' as const };
-      case 'cashfree-live':
-        return { label: 'Live Mode', color: 'success' as const };
-      default:
-        return { label: 'Unknown', color: 'default' as const };
+    if (paymentService.isTestMode()) {
+      return { label: 'Test Mode', color: 'warning' as const };
+    } else {
+      return { label: 'Live Mode', color: 'success' as const };
+    }
+  };
+
+  const getPaymentButtonText = () => {
+    if (paymentService.isTestMode()) {
+      return `Pay with Cashfree (Test) - ₹${total}`;
+    } else {
+      return `Pay with Cashfree - ₹${total}`;
     }
   };
 
@@ -167,7 +131,7 @@ export const PaymentPage: React.FC = () => {
         <Box display="flex" justifyContent="center" mb={2}>
           <Chip
             icon={<Info />}
-            label={`Payment ${getPaymentModeDisplay().label}`}
+            label={`Cashfree ${getPaymentModeDisplay().label}`}
             color={getPaymentModeDisplay().color}
             variant="outlined"
           />
@@ -176,7 +140,7 @@ export const PaymentPage: React.FC = () => {
         {/* Service Test Result */}
         {serviceTest && (
           <Alert 
-            severity={serviceTest.success ? 'success' : 'warning'} 
+            severity={serviceTest.success ? 'success' : 'error'} 
             sx={{ mb: 2 }}
           >
             <Typography variant="subtitle2" mb={1}>
@@ -193,85 +157,88 @@ export const PaymentPage: React.FC = () => {
           </Alert>
         )}
         
+        {/* Payment Summary */}
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" mb={2}>Payment Summary</Typography>
+            
+            <Box display="flex" justifyContent="space-between" mb={1}>
+              <Typography>Service</Typography>
+              <Typography>{service.name}</Typography>
+            </Box>
+            
+            <Box display="flex" justifyContent="space-between" mb={1}>
+              <Typography>Duration</Typography>
+              <Typography>{service.duration} minutes</Typography>
+            </Box>
+            
+            <Box display="flex" justifyContent="space-between" mb={1}>
+              <Typography>Location</Typography>
+              <Typography>{locality}</Typography>
+            </Box>
+            
+            {appliedCoupon && (
+              <Box display="flex" justifyContent="space-between" mb={1}>
+                <Typography color="success.main">Discount ({appliedCoupon.code})</Typography>
+                <Typography color="success.main">-₹{appliedCoupon.discount}</Typography>
+              </Box>
+            )}
+            
+            <Box display="flex" justifyContent="space-between" alignItems="center" mt={2} pt={2} sx={{ borderTop: 1, borderColor: 'divider' }}>
+              <Typography variant="h6">Total Amount</Typography>
+              <Typography variant="h6" color="primary">₹{total}</Typography>
+            </Box>
+          </CardContent>
+        </Card>
+        
+        {/* Payment Action */}
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 6 }}>
             {isProcessing ? (
-              <CircularProgress size={64} sx={{ mb: 3 }} />
-            ) : (
-              <Payment color="primary" sx={{ fontSize: 64, mb: 3 }} />
-            )}
-            
-            <Typography variant="h5" mb={2}>
-              {isProcessing ? 'Processing Payment' : 'Ready to Pay'}
-            </Typography>
-            
-            <Typography variant="body1" color="text.secondary" mb={4}>
-              {isProcessing ? getProcessingMessage() : `Secure payment for ₹${total}`}
-            </Typography>
-            
-            {!isProcessing && (
               <>
+                <CircularProgress size={64} sx={{ mb: 3 }} />
+                <Typography variant="h5" mb={2}>
+                  Processing Payment
+                </Typography>
+                <Typography variant="body1" color="text.secondary" mb={4}>
+                  {getProcessingMessage()}
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Payment color="primary" sx={{ fontSize: 64, mb: 3 }} />
+                <Typography variant="h5" mb={2}>
+                  Ready to Pay
+                </Typography>
+                <Typography variant="body1" color="text.secondary" mb={4}>
+                  Secure payment powered by Cashfree
+                </Typography>
+                
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
                   onClick={handlePayment}
-                  disabled={isProcessing}
+                  disabled={isProcessing || !serviceTest?.success}
                   sx={{
                     py: 2,
                     background: 'linear-gradient(135deg, #4E2780 0%, #6B46A3 100%)',
                     borderRadius: 3,
                     fontSize: '1.1rem',
-                    fontWeight: 600,
-                    mb: 2
+                    fontWeight: 600
                   }}
                   startIcon={<Payment />}
                 >
-                  {paymentMode === 'mock' ? 'Simulate Payment' : 
-                   paymentMode === 'cashfree-test' ? `Pay ₹${total} (Test Mode)` :
-                   `Pay ₹${total}`}
-                </Button>
-                
-                <Divider sx={{ my: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    OR
-                  </Typography>
-                </Divider>
-                
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  size="large"
-                  onClick={handleDemoMode}
-                  sx={{
-                    py: 2,
-                    borderRadius: 3,
-                    fontSize: '1rem',
-                    fontWeight: 600
-                  }}
-                  startIcon={<CheckCircle />}
-                >
-                  Continue Without Payment (Demo)
+                  {getPaymentButtonText()}
                 </Button>
                 
                 <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                  {paymentMode === 'mock' 
-                    ? 'Currently in demo mode - no real payment will be processed'
-                    : paymentMode === 'cashfree-test'
-                    ? 'Test mode - uses Cashfree sandbox environment with test cards'
-                    : 'Demo option allows testing the booking flow without payment'
+                  {paymentService.isTestMode() 
+                    ? 'Test mode - Use test cards for payment'
+                    : 'Live payments - Real money will be charged'
                   }
                 </Typography>
               </>
-            )}
-            
-            {/* Debug Info for Development */}
-            {process.env.NODE_ENV === 'development' && sessionId && (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="caption">
-                  Debug: Session ID - {sessionId}
-                </Typography>
-              </Alert>
             )}
           </CardContent>
         </Card>

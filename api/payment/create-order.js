@@ -138,10 +138,10 @@ async function createCashfreeOrder(req, res) {
 
     // Return success response
     return res.status(200).json({
-      success: true,
       payment_session_id: responseData.payment_session_id,
       order_id: responseData.order_id,
       order_status: responseData.order_status,
+      return_url: orderData.order_meta.return_url,
       cashfree_order_id: responseData.cf_order_id,
       environment: isProduction ? 'production' : 'sandbox'
     });

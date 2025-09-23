@@ -30,6 +30,8 @@ export const PaymentCallbackPage: React.FC = () => {
 
   const handlePaymentCallback = async () => {
     try {
+      console.log('Processing payment callback...');
+      
       // Extract callback parameters from URL
       const callbackData = {
         order_id: searchParams.get('order_id'),
@@ -40,7 +42,11 @@ export const PaymentCallbackPage: React.FC = () => {
         payment_currency: searchParams.get('payment_currency'),
         payment_message: searchParams.get('payment_message'),
         payment_time: searchParams.get('payment_time'),
-        signature: searchParams.get('signature')
+        signature: searchParams.get('signature'),
+        // Additional callback parameters
+        isCallback: searchParams.get('isCallback'),
+        id: searchParams.get('id'),
+        type: searchParams.get('type')
       };
 
       console.log('Payment callback data:', callbackData);
@@ -51,14 +57,18 @@ export const PaymentCallbackPage: React.FC = () => {
 
       // If successful, verify payment
       if (callbackResult.success && callbackResult.orderId) {
+        console.log('Verifying payment for order:', callbackResult.orderId);
         const isVerified = await paymentService.verifyPayment(callbackResult.orderId);
         
         if (!isVerified) {
+          console.log('Payment verification failed');
           setResult({
             success: false,
             orderId: callbackResult.orderId,
             message: 'Payment verification failed'
           });
+        } else {
+          console.log('Payment verified successfully');
         }
       }
     } catch (error) {
@@ -81,6 +91,9 @@ export const PaymentCallbackPage: React.FC = () => {
     navigate('/orders');
   };
 
+  const handleRetryPayment = () => {
+    navigate(-2); // Go back to payment page
+  };
   if (isProcessing) {
     return (
       <Box>
@@ -90,7 +103,7 @@ export const PaymentCallbackPage: React.FC = () => {
             <CardContent sx={{ textAlign: 'center', py: 6 }}>
               <CircularProgress size={64} sx={{ mb: 3 }} />
               <Typography variant="h6" mb={2}>
-                Processing Payment Result
+                Verifying Payment
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Please wait while we verify your payment...
@@ -115,7 +128,7 @@ export const PaymentCallbackPage: React.FC = () => {
                   Payment Successful!
                 </Typography>
                 <Typography variant="body1" color="text.secondary" mb={4}>
-                  {result.message}
+                  Your booking has been confirmed successfully.
                 </Typography>
                 {result.orderId && (
                   <Typography variant="body2" color="text.secondary" mb={4}>
@@ -154,10 +167,15 @@ export const PaymentCallbackPage: React.FC = () => {
                   </Typography>
                 )}
                 <Alert severity="info" sx={{ mb: 4 }}>
-                  Don't worry! No amount has been deducted from your account.
-                  You can try booking again.
+                  If amount was deducted, it will be refunded within 5-7 business days.
                 </Alert>
                 <Box display="flex" gap={2} justifyContent="center">
+                  <Button
+                    variant="outlined"
+                    onClick={handleRetryPayment}
+                  >
+                    Retry Payment
+                  </Button>
                   <Button
                     variant="contained"
                     onClick={handleGoHome}
