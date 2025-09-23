@@ -16,11 +16,25 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '../components/common/Header';
 import { useAuth } from '../context/AuthContext';
 
+interface SavedAddress {
+  id: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
 export const AddressSetupPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [step, setStep] = useState<'location' | 'details' | 'home'>('location');
+  const [step, setStep] = useState<'select' | 'location' | 'details' | 'home'>('select');
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   
   // Location step state
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +53,40 @@ export const AddressSetupPage: React.FC = () => {
   const [homeSize, setHomeSize] = useState<string | null>(null);
 
   const isFromSignup = location.state?.fromSignup;
+
+  React.useEffect(() => {
+    loadSavedAddresses();
+  }, [user]);
+
+  const loadSavedAddresses = async () => {
+    if (!user) return;
+    
+    try {
+      // For now, load from localStorage (replace with API call later)
+      const addresses = JSON.parse(localStorage.getItem(`addresses_${user.id}`) || '[]');
+      setSavedAddresses(addresses);
+      
+      // If user has addresses, show selection step
+      if (addresses.length > 0 && !isFromSignup) {
+        setStep('select');
+      } else {
+        setStep('location');
+      }
+    } catch (error) {
+      console.error('Error loading addresses:', error);
+      setStep('location');
+    }
+  };
+
+  const handleSelectExistingAddress = (address: SavedAddress) => {
+    // Set as current address and navigate back
+    navigate(-1);
+  };
+
+  const handleAddNewAddress = () => {
+    setShowAddressForm(true);
+    setStep('location');
+  };
 
   const handleLocationConfirm = () => {
     if (selectedLocation) {
@@ -94,6 +142,69 @@ export const AddressSetupPage: React.FC = () => {
     }
   };
 
+  const renderAddressSelection = () => (
+    <Container maxWidth="sm" sx={{ py: 2 }}>
+      <Typography variant="h6" mb={3}>
+        Select Address
+      </Typography>
+      
+      {savedAddresses.length > 0 && (
+        <Box mb={3}>
+          <Typography variant="body1" mb={2} fontWeight={500}>
+            Saved Addresses
+          </Typography>
+          {savedAddresses.map((address) => (
+            <Card 
+              key={address.id} 
+              sx={{ 
+                mb: 2, 
+                cursor: 'pointer',
+                '&:hover': { boxShadow: 3 }
+              }}
+              onClick={() => handleSelectExistingAddress(address)}
+            >
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+                  <Box>
+                    <Typography variant="h6" mb={1}>
+                      {address.addressLine1}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" mb={1}>
+                      {address.addressLine2 && `${address.addressLine2}, `}
+                      {address.city}, {address.state} {address.postalCode}
+                    </Typography>
+                    {address.isDefault && (
+                      <Chip label="Default" size="small" color="primary" />
+                    )}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      )}
+      
+      <Button
+        fullWidth
+        variant="outlined"
+        onClick={handleAddNewAddress}
+        sx={{ py: 2 }}
+      >
+        Add New Address
+      </Button>
+      
+      {!isFromSignup && (
+        <Button
+          fullWidth
+          variant="text"
+          onClick={() => navigate(-1)}
+          sx={{ mt: 2 }}
+        >
+          Cancel
+        </Button>
+      )}
+    </Container>
+  );
   const renderLocationStep = () => (
     <Box>
       {/* Search Bar */}
@@ -108,14 +219,16 @@ export const AddressSetupPage: React.FC = () => {
           }}
           sx={{ mb: 2 }}
         />
-        <Button
-          variant="text"
-          color="primary"
-          onClick={handleSkip}
-          sx={{ position: 'absolute', top: 16, right: 16 }}
-        >
-          SKIP
-        </Button>
+        {!showAddressForm && (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={handleSkip}
+            sx={{ position: 'absolute', top: 16, right: 16 }}
+          >
+            SKIP
+          </Button>
+        )}
       </Box>
 
       {/* Map Placeholder */}
@@ -405,6 +518,7 @@ export const AddressSetupPage: React.FC = () => {
 
   const getTitle = () => {
     switch (step) {
+      case 'select': return 'Select Address';
       case 'location': return '';
       case 'details': return '';
       case 'home': return '';
@@ -414,8 +528,9 @@ export const AddressSetupPage: React.FC = () => {
 
   return (
     <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
-      {step !== 'location' && <Header title={getTitle()} showBackButton />}
+      {(step !== 'location' || showAddressForm) && <Header title={getTitle()} showBackButton />}
       
+      {step === 'select' && renderAddressSelection()}
       {step === 'location' && renderLocationStep()}
       {step === 'details' && renderAddressDetailsStep()}
       {step === 'home' && renderHomeDetailsStep()}
