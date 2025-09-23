@@ -31,7 +31,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-// POST /api/payment/create-order
+// POST /create-order - Create Cashfree payment order
 router.post('/create-order', [
   body('orderId').notEmpty().withMessage('Order ID is required'),
   body('userId').isUUID().withMessage('Valid User ID is required'),
@@ -205,7 +205,7 @@ router.post('/create-order', [
   }
 });
 
-// GET /api/payment/verify/:orderId
+// GET /verify/:orderId - Verify payment status
 router.get('/verify/:orderId', [
   param('orderId').notEmpty().withMessage('Order ID is required')
 ], validateRequest, async (req, res) => {
@@ -318,7 +318,7 @@ router.get('/verify/:orderId', [
   }
 });
 
-// POST /api/payment/webhook - Cashfree webhook handler
+// POST /webhook - Cashfree webhook handler
 router.post('/webhook', async (req, res) => {
   try {
     const webhookData = req.body;
@@ -413,16 +413,5 @@ async function handlePaymentDropped(data) {
     })
     .eq('gateway_response->order_id', order.order_id);
 }
-
-// GET /api/payment/test - Test endpoint
-router.get('/test', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Payment API is accessible',
-    timestamp: new Date().toISOString(),
-    environment: process.env.CASHFREE_ENV,
-    service: 'qwiky-backend'
-  });
-});
 
 module.exports = router;

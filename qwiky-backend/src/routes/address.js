@@ -29,7 +29,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-// POST /api/address - Add new address for a user
+// POST / - Add new address for a user
 router.post('/', [
   body('userId').isUUID().withMessage('Valid User ID is required'),
   body('addressLine1').notEmpty().withMessage('Address line 1 is required'),
@@ -144,7 +144,7 @@ router.post('/', [
   }
 });
 
-// GET /api/address/:userId - Fetch saved addresses for a user
+// GET /:userId - Get all addresses for a user
 router.get('/:userId', [
   param('userId').isUUID().withMessage('Valid User ID is required')
 ], validateRequest, async (req, res) => {
@@ -201,7 +201,7 @@ router.get('/:userId', [
   }
 });
 
-// PUT /api/address/:id - Update address
+// PUT /:id - Update address
 router.put('/:id', [
   param('id').isUUID().withMessage('Valid Address ID is required'),
   body('addressLine1').optional().notEmpty().withMessage('Address line 1 cannot be empty'),

@@ -28,7 +28,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-// GET /api/slots/:locality - Fetch available slots by locality
+// GET /:locality - Get available slots by locality
 router.get('/:locality', [
   param('locality').notEmpty().withMessage('Locality is required')
 ], validateRequest, async (req, res) => {

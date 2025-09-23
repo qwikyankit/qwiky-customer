@@ -29,7 +29,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-// POST /api/user/signup
+// POST /signup - Create new user
 router.post('/signup', [
   body('mobile').isMobilePhone('en-IN').withMessage('Valid Indian mobile number is required'),
   body('name').optional().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
@@ -103,7 +103,7 @@ router.post('/signup', [
   }
 });
 
-// GET /api/user/:id
+// GET /:id - Get user by ID
 router.get('/:id', [
   param('id').isUUID().withMessage('Valid User ID is required')
 ], validateRequest, async (req, res) => {
@@ -137,7 +137,7 @@ router.get('/:id', [
   }
 });
 
-// PUT /api/user/:id
+// PUT /:id - Update user
 router.put('/:id', [
   param('id').isUUID().withMessage('Valid User ID is required'),
   body('name').optional().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),

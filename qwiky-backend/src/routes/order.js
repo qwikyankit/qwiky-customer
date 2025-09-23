@@ -29,7 +29,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-// POST /api/orders - Create new booking order
+// POST / - Create new booking order
 router.post('/', [
   body('userId').isUUID().withMessage('Valid User ID is required'),
   body('serviceId').isUUID().withMessage('Valid Service ID is required'),
@@ -169,7 +169,7 @@ router.post('/', [
   }
 });
 
-// GET /api/orders/:userId - Get all bookings for a user
+// GET /:userId - Get all orders for a user
 router.get('/:userId', [
   param('userId').isUUID().withMessage('Valid User ID is required')
 ], validateRequest, async (req, res) => {
@@ -261,7 +261,7 @@ router.get('/:userId', [
   }
 });
 
-// GET /api/orders/details/:orderId - Get order details
+// GET /details/:orderId - Get order details
 router.get('/details/:orderId', [
   param('orderId').isUUID().withMessage('Valid Order ID is required')
 ], validateRequest, async (req, res) => {

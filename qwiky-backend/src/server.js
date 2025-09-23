@@ -10,14 +10,6 @@ const { logger } = require('./utils/logger');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { validateEnv } = require('./utils/validation');
 
-// Import routes
-const paymentRoutes = require('./routes/payment');
-const userRoutes = require('./routes/user');
-const orderRoutes = require('./routes/order');
-const serviceRoutes = require('./routes/service');
-const addressRoutes = require('./routes/address');
-const slotRoutes = require('./routes/slot');
-
 // Validate environment variables
 validateEnv();
 
@@ -92,15 +84,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/payment', paymentRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/services', serviceRoutes);
-app.use('/api/address', addressRoutes);
-app.use('/api/slots', slotRoutes);
+// Import and mount API routes - BEFORE 404 handler
+app.use('/api/payment', require('./routes/payment'));
+app.use('/api/user', require('./routes/user'));
+app.use('/api/orders', require('./routes/order'));
+app.use('/api/services', require('./routes/service'));
+app.use('/api/address', require('./routes/address'));
+app.use('/api/slots', require('./routes/slot'));
 
-// 404 handler for API routes
+// 404 handler for API routes - AFTER all route mounting
 app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,

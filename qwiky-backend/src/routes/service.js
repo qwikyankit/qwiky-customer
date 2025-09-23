@@ -28,7 +28,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-// GET /api/services
+// GET / - Get all active services
 router.get('/', async (req, res) => {
   try {
     logger.info('Fetching all active services');
@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/services/:id
+// GET /:id - Get service by ID
 router.get('/:id', [
   param('id').isUUID().withMessage('Valid Service ID is required')
 ], validateRequest, async (req, res) => {
