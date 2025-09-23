@@ -24,6 +24,7 @@ import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { ManageAddressesPage } from './pages/ManageAddressesPage';
 import { BookingDetailsPage } from './pages/BookingDetailsPage';
 import { ApiTestPage } from './pages/ApiTestPage';
+import { PaymentCallbackPage } from './pages/PaymentCallbackPage';
 import { AppBottomNavigation } from './components/common/BottomNavigation';
 import './styles/globals.scss';
 
@@ -105,6 +106,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <PaymentPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payment/callback"
+        element={
+          <ProtectedRoute>
+            <PaymentCallbackPage />
           </ProtectedRoute>
         }
       />
