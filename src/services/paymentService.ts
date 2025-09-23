@@ -162,20 +162,27 @@ class PaymentService {
 
     console.log('Processing Cashfree payment');
 
+    // Use the checkout options format you specified
+    const checkoutOptions = {
+      paymentSessionId: sessionId,
+      returnUrl: `${window.location.origin}/payment/callback`
+    };
+
+    const cashfreeEnvironment = this.isProduction ? 'production' : 'sandbox';
+    const cashfree = window.Cashfree({ mode: cashfreeEnvironment });
+
     return new Promise((resolve, reject) => {
-      this.cashfree.checkout({
-        paymentSessionId: sessionId,
-        redirectTarget: '_modal', // Use modal for better UX
-      }).then((result: any) => {
-        console.log('Cashfree payment result:', result);
+      cashfree.checkout(checkoutOptions).then((result: any) => {
+        console.log('Cashfree checkout result:', result);
         
         if (result.error) {
           console.error('Cashfree payment error:', result.error);
           reject(new Error(result.error.message || 'Payment failed'));
         } else if (result.redirect) {
-          console.log('Payment requires redirect:', result.redirect);
-          // Handle redirect if needed
-          window.location.href = result.redirect.url;
+          console.log('Redirection to Cashfree');
+          // The redirect will happen automatically
+          // We resolve here as the redirect is successful
+          resolve();
         } else {
           console.log('Payment completed successfully');
           resolve();
