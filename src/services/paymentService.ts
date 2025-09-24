@@ -299,6 +299,8 @@ class PaymentService {
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
         const testResponse = await fetch(`${this.backendBaseUrl}/api/payment/test`, {
+        }
+        )
         const testResponse = await fetch(`${this.backendBaseUrl}/payment/test`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
