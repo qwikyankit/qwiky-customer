@@ -192,6 +192,12 @@ export const ApiTestPage: React.FC = () => {
         <Card>
           <CardContent>
             <Typography variant="h6" mb={2}>API Endpoints Overview</Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" mb={1}>Backend URL:</Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                {import.meta.env.VITE_API_URL || 'Not configured'}
+              </Typography>
+            </Alert>
             <Box component="pre" sx={{ 
               bgcolor: 'grey.100', 
               p: 2, 
