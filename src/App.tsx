@@ -26,7 +26,7 @@ import { BookingDetailsPage } from './pages/BookingDetailsPage';
 import { ApiTestPage } from './pages/ApiTestPage';
 import { PaymentCallbackPage } from './pages/PaymentCallbackPage';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
-import { PaymentFailedPage } from './pages/PaymentFailedPage';
+import { PaymentFailedPage } from './pages/PaymentFailedPage.tsx';
 import { AppBottomNavigation } from './components/common/BottomNavigation';
 import './styles/globals.scss';
 
