@@ -200,7 +200,7 @@ class PaymentService {
       console.log('Verifying Cashfree payment for order:', orderId);
 
       // Call backend API to verify payment with Cashfree
-      const response = await fetch(`${this.backendBaseUrl}/api/payment/verify/${orderId}`, {
+      const response = await fetch(`${this.backendBaseUrl}/payment/verify/${orderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

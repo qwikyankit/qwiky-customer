@@ -414,4 +414,136 @@ async function handlePaymentDropped(data) {
     .eq('gateway_response->order_id', order.order_id);
 }
 
+// GET /callback - Handle Cashfree payment callback
+router.get('/callback', async (req, res) => {
+  try {
+    const {
+      order_id,
+      order_status,
+      payment_status,
+      cf_payment_id,
+      payment_amount,
+      payment_currency,
+      payment_message,
+      payment_time,
+      signature
+    } = req.query;
+
+    logger.info('Received Cashfree payment callback:', {
+      orderId: order_id,
+      orderStatus: order_status,
+      paymentStatus: payment_status,
+      paymentId: cf_payment_id
+    });
+
+    // Determine frontend URL
+    const frontendUrl = process.env.FRONTEND_URL || 'https://qwiky-customer.onrender.com';
+
+    // Process payment result
+    if (payment_status === 'SUCCESS' && order_status === 'PAID') {
+      // Update order and transaction status in database
+      try {
+        // Find and update transaction
+        const { data: transaction, error: findError } = await supabase
+          .from('transactions')
+          .select('id, order_id')
+          .eq('gateway_response->order_id', order_id)
+          .single();
+
+        if (!findError && transaction) {
+          // Update transaction status
+          await supabase
+            .from('transactions')
+            .update({
+              status: 'success',
+              gateway_transaction_id: cf_payment_id,
+              gateway_response: {
+                order_id,
+                order_status,
+                payment_status,
+                cf_payment_id,
+                payment_amount,
+                payment_currency,
+                payment_time
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', transaction.id);
+
+          // Update order status
+          await supabase
+            .from('orders')
+            .update({
+              status: 'confirmed',
+              payment_status: 'paid',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', transaction.order_id);
+
+          logger.info('Payment success processed for order:', order_id);
+        }
+      } catch (dbError) {
+        logger.error('Error updating database after payment success:', dbError);
+      }
+
+      // Redirect to success page
+      return res.redirect(`${frontendUrl}/payment/success?order_id=${order_id}&payment_id=${cf_payment_id}`);
+    } 
+    else if (payment_status === 'FAILED') {
+      // Update transaction status for failed payment
+      try {
+        const { data: transaction, error: findError } = await supabase
+          .from('transactions')
+          .select('id, order_id')
+          .eq('gateway_response->order_id', order_id)
+          .single();
+
+        if (!findError && transaction) {
+          await supabase
+            .from('transactions')
+            .update({
+              status: 'failed',
+              gateway_response: {
+                order_id,
+                order_status,
+                payment_status,
+                payment_message
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', transaction.id);
+
+          await supabase
+            .from('orders')
+            .update({
+              status: 'cancelled',
+              payment_status: 'failed',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', transaction.order_id);
+
+          logger.info('Payment failure processed for order:', order_id);
+        }
+      } catch (dbError) {
+        logger.error('Error updating database after payment failure:', dbError);
+      }
+
+      // Redirect to failure page
+      return res.redirect(`${frontendUrl}/payment/failed?order_id=${order_id}&reason=${encodeURIComponent(payment_message || 'Payment failed')}`);
+    }
+    else {
+      // Handle other statuses (USER_DROPPED, etc.)
+      logger.info('Payment cancelled or dropped for order:', order_id);
+      return res.redirect(`${frontendUrl}/payment/failed?order_id=${order_id}&reason=cancelled`);
+    }
+
+  } catch (error) {
+    logger.error('Error processing payment callback:', error);
+    
+    // Redirect to failure page with generic error
+    const frontendUrl = process.env.FRONTEND_URL || 'https://qwiky-customer.onrender.com';
+    return res.redirect(`${frontendUrl}/payment/failed?order_id=${req.query.order_id || 'unknown'}&reason=processing_error`);
+  }
+});
+
 module.exports = router;
