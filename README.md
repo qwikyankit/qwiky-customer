@@ -185,6 +185,63 @@ The app is configured for deployment with proper environment variable support:
 
 The application is fully functional and ready for deployment with a proper backend API.
 
+## 🌐 Frontend Deployment on Render
+
+### Static Site Configuration
+
+When deploying the frontend as a Static Site on Render:
+
+1. **Build Settings**:
+   - Build Command: `npm run build`
+   - Publish Directory: `dist`
+
+2. **Environment Variables**:
+   ```env
+   VITE_API_URL=https://qwiky-backend.onrender.com/api
+   VITE_FRONTEND_URL=https://qwiky-customer.onrender.com
+   VITE_PAYMENT_MODE=cashfree-test
+   VITE_CASHFREE_ENV=TEST
+   ```
+
+3. **SPA Routing Fix** (Critical for React Router):
+   - Go to your Static Site dashboard on Render
+   - Navigate to **Settings** → **Redirects and Rewrites**
+   - Add this rewrite rule:
+     ```
+     Source: /*
+     Destination: /index.html
+     Action: Rewrite
+     ```
+   - This ensures deep links like `/payment/callback?...` work correctly
+   - Without this, Render returns 404 for any route that's not a physical file
+
+### Alternative: Using _redirects File
+
+The project includes a `public/_redirects` file with:
+```
+/*    /index.html   200
+```
+
+This file should automatically configure the redirects when you deploy to Render.
+
+### Troubleshooting SPA Routes
+
+If you still get 404 errors on routes like `/payment/callback`:
+
+1. **Check _redirects file** is in the `public/` folder
+2. **Verify build output** includes `_redirects` in the `dist/` folder
+3. **Manual configuration** in Render dashboard as backup:
+   - Static Site → Settings → Redirects and Rewrites
+   - Add: `/*` → `/index.html` (Rewrite)
+
+### Testing Deep Links
+
+After deployment, these URLs should work:
+- `https://qwiky-customer.onrender.com/payment/callback?order_id=123`
+- `https://qwiky-customer.onrender.com/orders`
+- `https://qwiky-customer.onrender.com/profile`
+- Any React Router route should load correctly
+
 ## API Testing & Validation
 
 ### Testing the API and Data Flow
