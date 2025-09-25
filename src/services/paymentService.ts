@@ -286,14 +286,14 @@ class PaymentService {
         return {
           success: false,
           mode: this.paymentMode,
-          message: `Backend API not accessible: ${error.message}`
+          message: `Backend API not accessible: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
     } catch (error) {
       return {
         success: false,
         mode: this.paymentMode,
-        message: `Configuration test failed: ${error.message}`
+        message: `Configuration test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
