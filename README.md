@@ -278,25 +278,55 @@ Set these in Render Dashboard → Environment:
 
 ### API Integration Notes
 
-#### Important: No Double /api Prefix
+#### CRITICAL: API URL Configuration
 
-- **Backend**: Already mounts all routes under `/api`
-  - Routes: `/api/payment/create-order`, `/api/user/signup`, etc.
+**Backend Configuration**:
+- Backend already mounts all routes under `/api`
+- Routes: `/api/payment/create-order`, `/api/user/signup`, etc.
+- Base URL: `https://qwiky-backend.onrender.com`
 
-- **Frontend**: Should NOT add `/api` to `VITE_API_URL`
-  - ✅ Correct: `VITE_API_URL=https://qwiky-backend.onrender.com`
-  - ❌ Wrong: `VITE_API_URL=https://qwiky-backend.onrender.com/api`
+**Frontend Configuration**:
+- Environment variable: `VITE_API_BASE_URL=https://qwiky-backend.onrender.com/api`
+- Frontend code calls: `apiClient.post('/payment/create-order', data)`
+- Final URL: `https://qwiky-backend.onrender.com/api/payment/create-order` ✅
 
-- **Result**: Frontend calls `${VITE_API_URL}/api/payment/test`
-  - Resolves to: `https://qwiky-backend.onrender.com/api/payment/test` ✅
-  - Not: `https://qwiky-backend.onrender.com/api/api/payment/test` ❌
+**IMPORTANT**: 
+- ✅ Correct: `VITE_API_BASE_URL=https://qwiky-backend.onrender.com/api`
+- ❌ Wrong: `VITE_API_BASE_URL=https://qwiky-backend.onrender.com` (missing /api)
+- ✅ Frontend calls: `apiClient.post('/payment/test')` (no /api prefix in code)
+- ❌ Wrong: `apiClient.post('/api/payment/test')` (creates double /api/api/)
 
 #### Payment Flow URLs
 
 1. **Payment Creation**: `POST https://qwiky-backend.onrender.com/api/payment/create-order`
 2. **Cashfree Callback**: `GET https://qwiky-backend.onrender.com/api/payment/callback`
-3. **Frontend Redirect**: `https://qwiky-customer.onrender.com/payment/success`
+3. **Frontend Success**: `https://qwiky-customer.onrender.com/payment/success?order_id=xxx`
+4. **Frontend Failure**: `https://qwiky-customer.onrender.com/payment/failed?order_id=xxx`
 
+#### SPA Routing Configuration
+
+**For Render Static Sites**, add this `public/static.json`:
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1",
+      "status": 200
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html",
+      "status": 200
+    }
+  ]
+}
+```
+
+This ensures:
+- `/payment/callback?order_id=123` loads React app (not 404)
+- `/api/*` routes are preserved for backend calls
+- Deep links work properly
 ### Troubleshooting
 
 #### Frontend Issues

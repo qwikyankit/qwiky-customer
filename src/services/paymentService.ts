@@ -93,8 +93,8 @@ class PaymentService {
           customer_email: paymentData.customerDetails.customerEmail || 'customer@example.com'
         },
         order_meta: {
-          return_url: paymentData.returnUrl || `${window.location.origin}/payment/callback`,
-          notify_url: paymentData.notifyUrl || `${this.backendBaseUrl}/api/payment/webhook`
+          return_url: "https://qwiky-customer.onrender.com/payment/callback",
+          notify_url: "https://qwiky-backend.onrender.com/api/payment/webhook"
         }
       };
 
