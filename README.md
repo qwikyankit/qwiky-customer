@@ -185,62 +185,130 @@ The app is configured for deployment with proper environment variable support:
 
 The application is fully functional and ready for deployment with a proper backend API.
 
-## 🌐 Frontend Deployment on Render
+## 🌐 Deployment Guide
 
-### Static Site Configuration
+### Frontend Deployment on Render (Static Site)
 
-When deploying the frontend as a Static Site on Render:
+#### 1. Basic Configuration
 
-1. **Build Settings**:
-   - Build Command: `npm run build`
-   - Publish Directory: `dist`
+**Build Settings**:
+- Repository: Connect your GitHub repository
+- Build Command: `npm run build`
+- Publish Directory: `dist`
+- Environment: `Node`
 
-2. **Environment Variables**:
-   ```env
-   VITE_API_URL=https://qwiky-backend.onrender.com/api
-   VITE_FRONTEND_URL=https://qwiky-customer.onrender.com
-   VITE_PAYMENT_MODE=cashfree-test
-   VITE_CASHFREE_ENV=TEST
-   ```
+#### 2. Environment Variables
 
-3. **SPA Routing Fix** (Critical for React Router):
-   - Go to your Static Site dashboard on Render
-   - Navigate to **Settings** → **Redirects and Rewrites**
-   - Add this rewrite rule:
-     ```
-     Source: /*
-     Destination: /index.html
-     Action: Rewrite
-     ```
-   - This ensures deep links like `/payment/callback?...` work correctly
-   - Without this, Render returns 404 for any route that's not a physical file
+Set these in Render Dashboard → Environment:
+```env
+VITE_API_URL=https://qwiky-backend.onrender.com
+VITE_FRONTEND_URL=https://qwiky-customer.onrender.com
+VITE_PAYMENT_MODE=cashfree-test
+VITE_CASHFREE_ENV=SANDBOX
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+```
 
-### Alternative: Using _redirects File
+#### 3. SPA Routing Configuration (CRITICAL)
 
-The project includes a `public/_redirects` file with:
+**Option A: Automatic (Recommended)**
+The project includes a `public/_redirects` file that automatically configures SPA routing:
 ```
 /*    /index.html   200
 ```
 
-This file should automatically configure the redirects when you deploy to Render.
+**Option B: Manual Configuration**
+If the `_redirects` file doesn't work, manually configure in Render Dashboard:
 
-### Troubleshooting SPA Routes
+1. Go to **Static Site** → **Settings** → **Redirects and Rewrites**
+2. Add this rewrite rule:
+   ```
+   Source: /*
+   Destination: /index.html
+   Action: Rewrite
+   ```
 
-If you still get 404 errors on routes like `/payment/callback`:
+#### 4. Why This Is Critical
 
-1. **Check _redirects file** is in the `public/` folder
-2. **Verify build output** includes `_redirects` in the `dist/` folder
-3. **Manual configuration** in Render dashboard as backup:
-   - Static Site → Settings → Redirects and Rewrites
-   - Add: `/*` → `/index.html` (Rewrite)
+Without SPA routing configuration:
+- ❌ `/payment/callback?order_id=123` returns 404
+- ❌ `/orders` returns 404 on page refresh
+- ❌ Deep links don't work
 
-### Testing Deep Links
+With proper configuration:
+- ✅ All React Router routes work correctly
+- ✅ Payment callbacks from Cashfree work
+- ✅ Users can refresh any page without errors
+- ✅ Deep links work properly
 
-After deployment, these URLs should work:
-- `https://qwiky-customer.onrender.com/payment/callback?order_id=123`
-- `https://qwiky-customer.onrender.com/orders`
-- `https://qwiky-customer.onrender.com/profile`
-- Any React Router route should load correctly
+#### 5. Testing Deep Links
+
+After deployment, verify these URLs work:
+```bash
+# These should load the React app, not return 404:
+https://qwiky-customer.onrender.com/payment/callback?order_id=123
+https://qwiky-customer.onrender.com/orders
+https://qwiky-customer.onrender.com/profile
+https://qwiky-customer.onrender.com/payment/success?order_id=123
+```
+
+### Backend Deployment on Render (Web Service)
+
+#### 1. Basic Configuration
+
+**Build Settings**:
+- Repository: Connect your GitHub repository (qwiky-backend folder)
+   - Build Command: `npm run build`
+   - Start Command: `npm start`
+   - Environment: `Node`
+
+#### 2. Environment Variables
+
+Set these in Render Dashboard → Environment:
+   ```env
+   NODE_ENV=production
+   PORT=3001
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+   CASHFREE_APP_ID=your_cashfree_test_app_id
+   CASHFREE_SECRET_KEY=your_cashfree_test_secret_key
+   CASHFREE_ENV=SANDBOX
+   FRONTEND_URL=https://qwiky-customer.onrender.com
+   ALLOWED_ORIGINS=https://qwiky-customer.onrender.com,http://localhost:5173
+   ```
+
+### API Integration Notes
+
+#### Important: No Double /api Prefix
+
+- **Backend**: Already mounts all routes under `/api`
+  - Routes: `/api/payment/create-order`, `/api/user/signup`, etc.
+
+- **Frontend**: Should NOT add `/api` to `VITE_API_URL`
+  - ✅ Correct: `VITE_API_URL=https://qwiky-backend.onrender.com`
+  - ❌ Wrong: `VITE_API_URL=https://qwiky-backend.onrender.com/api`
+
+- **Result**: Frontend calls `${VITE_API_URL}/api/payment/test`
+  - Resolves to: `https://qwiky-backend.onrender.com/api/payment/test` ✅
+  - Not: `https://qwiky-backend.onrender.com/api/api/payment/test` ❌
+
+#### Payment Flow URLs
+
+1. **Payment Creation**: `POST https://qwiky-backend.onrender.com/api/payment/create-order`
+2. **Cashfree Callback**: `GET https://qwiky-backend.onrender.com/api/payment/callback`
+3. **Frontend Redirect**: `https://qwiky-customer.onrender.com/payment/success`
+
+### Troubleshooting
+
+#### Frontend Issues
+- **404 on routes**: Check `_redirects` file or manual rewrite rules
+- **API errors**: Verify `VITE_API_URL` doesn't include `/api`
+- **Payment callback 404**: Ensure SPA routing is configured
+
+#### Backend Issues  
+- **CORS errors**: Check `ALLOWED_ORIGINS` includes frontend URL
+- **Payment errors**: Verify Cashfree credentials and environment
+- **Database errors**: Check Supabase connection and RLS policies
+
 
 ## API Testing & Validation
 

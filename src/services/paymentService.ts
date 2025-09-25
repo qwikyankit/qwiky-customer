@@ -38,7 +38,7 @@ class PaymentService {
   constructor() {
     this.paymentMode = import.meta.env.VITE_PAYMENT_MODE || 'cashfree-test';
     this.isProduction = import.meta.env.VITE_CASHFREE_ENV === 'PRODUCTION';
-    this.backendBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+    this.backendBaseUrl = (import.meta.env.VITE_API_URL || 'https://qwiky-backend.onrender.com') + '/api';
     this.initializeCashfree();
   }
 
@@ -99,7 +99,7 @@ class PaymentService {
       console.log('Calling backend API to create Cashfree order:', orderData);
 
       // Call backend API to create Cashfree order
-      const response = await fetch(`${this.backendBaseUrl}/api/payment/create-order`, {
+      const response = await fetch(`${this.backendBaseUrl}/payment/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -6,7 +6,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'https://qwiky-backend.onrender.com/api',
+      baseURL: (import.meta.env.VITE_API_URL || 'https://qwiky-backend.onrender.com') + '/api',
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
