@@ -173,6 +173,11 @@ export default function BookingDetail() {
   };
 
   const getUserPhone = () => {
+    // API returns mobileNumber with countryCode
+    if (user?.mobileNumber) {
+      const countryCode = user?.countryCode || '91';
+      return `+${countryCode} ${user.mobileNumber}`;
+    }
     return user?.phone || user?.phoneNumber || user?.mobile || booking?.phone || 'N/A';
   };
 
