@@ -26,12 +26,12 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# Qwiky API configuration
-QWIKY_BASE_URL = "https://api.qwiky.in/qwiky-service/api/v1"
-DEFAULT_HOOD_ID = "4dd4d3a6-c0b3-4042-8e01-5b9299273ee1"
+# Qwiky API configuration - loaded from environment variables
+QWIKY_BASE_URL = os.environ.get('QWIKY_BASE_URL', "https://api.qwiky.in/qwiky-service/api/v1")
+DEFAULT_HOOD_ID = os.environ.get('QWIKY_HOOD_ID', "4dd4d3a6-c0b3-4042-8e01-5b9299273ee1")
 
-# Default Bearer token
-DEFAULT_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJtb2JpbGUiOiI5NjYwNzY2MjI3Iiwicm9sZXMiOlsiU1VQRVJfQURNSU4iLCJDVVNUT01FUiJdLCJ1c2VySWQiOiJjZGZiZDJmZC04OTkxLTRiNzMtOGZmYS1jNzE1MzZiOGI4MDkiLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwic3ViIjoiY2RmYmQyZmQtODk5MS00YjczLThmZmEtYzcxNTM2YjhiODA5IiwiaWF0IjoxNzcxMDU4MzE0LCJleHAiOjIwODIwOTgzMTR9.AukXaAriiGHGlwgEwRhleN2kzC0emcEoys7H3JG7PA4"
+# Default Bearer token from environment
+DEFAULT_TOKEN = os.environ.get('QWIKY_DEFAULT_TOKEN', "")
 
 
 # Define Models
