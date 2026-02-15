@@ -4,12 +4,12 @@ import { Platform } from 'react-native';
 
 const TOKEN_STORAGE_KEY = 'qwiky_admin_token';
 
-// Default token
-const DEFAULT_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJtb2JpbGUiOiI5NjYwNzY2MjI3Iiwicm9sZXMiOlsiU1VQRVJfQURNSU4iLCJDVVNUT01FUiJdLCJ1c2VySWQiOiJjZGZiZDJmZC04OTkxLTRiNzMtOGZmYS1jNzE1MzZiOGI4MDkiLCJ0b2tlbl90eXBlIjoiYWNjZXNzIiwic3ViIjoiY2RmYmQyZmQtODk5MS00YjczLThmZmEtYzcxNTM2YjhiODA5IiwiaWF0IjoxNzcxMDU4MzE0LCJleHAiOjIwODIwOTgzMTR9.AukXaAriiGHGlwgEwRhleN2kzC0emcEoys7H3JG7PA4';
+// Get token from environment or use empty as fallback (user must set in settings)
+const DEFAULT_TOKEN = process.env.EXPO_PUBLIC_QWIKY_TOKEN || '';
 
-// Use the backend proxy URL
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://qadmin-bookings.preview.emergentagent.com';
-const API_BASE_URL = `${BACKEND_URL}/api`;
+// Use the backend proxy URL from environment
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const API_BASE_URL = BACKEND_URL ? `${BACKEND_URL}/api` : '/api';
 
 let currentToken = DEFAULT_TOKEN;
 
