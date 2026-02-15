@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text, Platform } from 'react-native';
+import THEME from '../constants/theme';
 
 interface LoaderProps {
   message?: string;
@@ -10,7 +11,7 @@ const Loader: React.FC<LoaderProps> = ({ message = 'Loading...', fullScreen = fa
   if (fullScreen) {
     return (
       <View style={styles.fullScreenContainer}>
-        <ActivityIndicator size="large" color="#1E88E5" />
+        <ActivityIndicator size="large" color={THEME.colors.primary} />
         {message && <Text style={styles.message}>{message}</Text>}
       </View>
     );
@@ -18,7 +19,7 @@ const Loader: React.FC<LoaderProps> = ({ message = 'Loading...', fullScreen = fa
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="small" color="#1E88E5" />
+      <ActivityIndicator size="small" color={THEME.colors.primary} />
       {message && <Text style={styles.messageSmall}>{message}</Text>}
     </View>
   );
@@ -57,32 +58,38 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: THEME.colors.background,
   },
   message: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: THEME.colors.textSecondary,
   },
   messageSmall: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#666',
+    color: THEME.colors.textSecondary,
   },
 });
 
 const skeletonStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.borderRadius.lg,
     padding: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   header: {
     flexDirection: 'row',
@@ -103,7 +110,7 @@ const skeletonStyles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: THEME.colors.divider,
     marginVertical: 12,
   },
   row: {

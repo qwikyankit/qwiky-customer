@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import THEME from '../constants/theme';
 
 interface EmptyStateProps {
   title?: string;
@@ -16,7 +17,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={64} color="#CCC" />
+        <Ionicons name={icon} size={64} color={THEME.colors.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
@@ -30,12 +31,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
+    minHeight: 300,
   },
   iconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: `${THEME.colors.primary}15`,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
@@ -43,13 +45,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: THEME.colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 15,
-    color: '#888',
+    color: THEME.colors.textMuted,
     textAlign: 'center',
     lineHeight: 22,
   },

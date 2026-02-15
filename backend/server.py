@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Header, Query
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -53,41 +53,81 @@ def get_auth_token(authorization: Optional[str] = None) -> str:
 
 # Proxy routes for Qwiky API
 @api_router.get("/qwiky/bookings")
-async def get_bookings(authorization: Optional[str] = Header(None)):
-    """Proxy to fetch all bookings from Qwiky API"""
+async def get_bookings(
+    page: int = Query(0, ge=0, description="Page number (0-indexed)"),
+    size: int = Query(20, ge=1, le=100, description="Page size"),
+    authorization: Optional[str] = Header(None)
+):
+    """Proxy to fetch all bookings from Qwiky API with pagination"""
     token = get_auth_token(authorization)
     
     async with httpx.AsyncClient(timeout=30.0) as http_client:
         try:
             response = await http_client.get(
                 f"{QWIKY_BASE_URL}/admin/booking/hood/{DEFAULT_HOOD_ID}",
+                params={"page": page, "size": size, "sort": "createdAt,desc"},
                 headers={"Authorization": f"Bearer {token}"}
             )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+            error_detail = "API request failed"
+            try:
+                error_detail = e.response.json().get("message", str(e))
+            except:
+                error_detail = str(e)
+            raise HTTPException(status_code=e.response.status_code, detail=error_detail)
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Request timeout - please try again")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+
+@api_router.get("/qwiky/bookings/count")
+async def get_bookings_count(authorization: Optional[str] = Header(None)):
+    """Get total bookings count for polling new bookings"""
+    token = get_auth_token(authorization)
+    
+    async with httpx.AsyncClient(timeout=30.0) as http_client:
+        try:
+            response = await http_client.get(
+                f"{QWIKY_BASE_URL}/admin/booking/hood/{DEFAULT_HOOD_ID}",
+                params={"page": 0, "size": 1},
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            response.raise_for_status()
+            data = response.json()
+            total = data.get("page", {}).get("totalElements", 0)
+            return {"totalCount": total}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.get("/qwiky/user/{user_id}")
 async def get_user_details(user_id: str, authorization: Optional[str] = Header(None)):
-    """Proxy to fetch user details from Qwiky API"""
+    """Proxy to fetch user details from Qwiky API using admin endpoint"""
     token = get_auth_token(authorization)
     
     async with httpx.AsyncClient(timeout=30.0) as http_client:
         try:
+            # Use admin endpoint as specified
             response = await http_client.get(
-                f"{QWIKY_BASE_URL}/user/{user_id}",
+                f"{QWIKY_BASE_URL}/admin/user/{user_id}",
                 headers={"Authorization": f"Bearer {token}"}
             )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+            error_detail = "Failed to fetch user details"
+            try:
+                error_detail = e.response.json().get("message", str(e))
+            except:
+                error_detail = str(e)
+            raise HTTPException(status_code=e.response.status_code, detail=error_detail)
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Request timeout - please try again")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
 @api_router.post("/qwiky/booking/{booking_id}/cancel")
@@ -104,9 +144,16 @@ async def cancel_booking(booking_id: str, authorization: Optional[str] = Header(
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+            error_detail = "Failed to cancel booking"
+            try:
+                error_detail = e.response.json().get("message", str(e))
+            except:
+                error_detail = str(e)
+            raise HTTPException(status_code=e.response.status_code, detail=error_detail)
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Request timeout - please try again")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
 @api_router.post("/qwiky/booking/{booking_id}/settled")
@@ -123,9 +170,16 @@ async def settle_booking(booking_id: str, authorization: Optional[str] = Header(
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+            error_detail = "Failed to settle booking"
+            try:
+                error_detail = e.response.json().get("message", str(e))
+            except:
+                error_detail = str(e)
+            raise HTTPException(status_code=e.response.status_code, detail=error_detail)
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Request timeout - please try again")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
 # Add your routes to the router instead of directly to app

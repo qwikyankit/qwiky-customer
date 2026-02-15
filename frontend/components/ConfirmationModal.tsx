@@ -6,8 +6,10 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import THEME from '../constants/theme';
 
 interface ConfirmationModalProps {
   visible: boolean;
@@ -28,7 +30,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  confirmColor = '#1E88E5',
+  confirmColor = THEME.colors.primary,
   onConfirm,
   onCancel,
   loading = false,
@@ -40,6 +42,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={onCancel}
+      statusBarTranslucent
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
@@ -57,6 +60,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               style={[styles.button, styles.cancelButton]}
               onPress={onCancel}
               disabled={loading}
+              activeOpacity={0.7}
             >
               <Text style={styles.cancelButtonText}>{cancelText}</Text>
             </TouchableOpacity>
@@ -65,6 +69,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               style={[styles.button, styles.confirmButton, { backgroundColor: confirmColor }]}
               onPress={onConfirm}
               disabled={loading}
+              activeOpacity={0.7}
             >
               {loading ? (
                 <ActivityIndicator color="#FFF" size="small" />
@@ -88,12 +93,23 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.borderRadius.xl,
     padding: 24,
     width: '100%',
     maxWidth: 340,
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   iconContainer: {
     width: 64,
@@ -106,13 +122,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: THEME.colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontSize: 15,
-    color: '#666',
+    color: THEME.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -135,7 +151,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#666',
+    color: THEME.colors.textSecondary,
   },
   confirmButton: {
     minHeight: 48,

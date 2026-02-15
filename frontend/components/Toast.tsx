@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import THEME from '../constants/theme';
 
 interface ToastProps {
   visible: boolean;
   message: string;
-  type: 'success' | 'error' | 'info';
+  type: 'success' | 'error' | 'info' | 'warning';
   onHide: () => void;
   duration?: number;
 }
@@ -48,24 +49,31 @@ const Toast: React.FC<ToastProps> = ({
     switch (type) {
       case 'success':
         return {
-          backgroundColor: '#E8F5E9',
-          borderColor: '#43A047',
-          iconColor: '#43A047',
+          backgroundColor: THEME.colors.settledBg,
+          borderColor: THEME.colors.settled,
+          iconColor: THEME.colors.settled,
           icon: 'checkmark-circle' as const,
         };
       case 'error':
         return {
-          backgroundColor: '#FFEBEE',
-          borderColor: '#E53935',
-          iconColor: '#E53935',
+          backgroundColor: THEME.colors.cancelledBg,
+          borderColor: THEME.colors.cancelled,
+          iconColor: THEME.colors.cancelled,
           icon: 'close-circle' as const,
+        };
+      case 'warning':
+        return {
+          backgroundColor: THEME.colors.pendingBg,
+          borderColor: THEME.colors.pending,
+          iconColor: THEME.colors.pending,
+          icon: 'warning' as const,
         };
       case 'info':
       default:
         return {
-          backgroundColor: '#E3F2FD',
-          borderColor: '#1E88E5',
-          iconColor: '#1E88E5',
+          backgroundColor: THEME.colors.confirmedBg,
+          borderColor: THEME.colors.confirmed,
+          iconColor: THEME.colors.confirmed,
           icon: 'information-circle' as const,
         };
     }
@@ -95,7 +103,7 @@ const Toast: React.FC<ToastProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'ios' ? 50 : 30,
     left: 16,
     right: 16,
     flexDirection: 'row',
@@ -103,11 +111,17 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
     zIndex: 1000,
   },
   message: {

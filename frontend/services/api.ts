@@ -25,7 +25,6 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor to add auth header
 apiClient.interceptors.request.use(
   async (config) => {
-    // Try to get token from storage first
     try {
       const storedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
       if (storedToken) {
@@ -44,13 +43,24 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    let errorMessage = 'An unexpected error occurred';
+    
     if (error.response) {
-      console.error('API Error:', error.response.status, error.response.data);
+      // Server responded with error
+      const data = error.response.data as any;
+      errorMessage = data?.detail || data?.message || `Error: ${error.response.status}`;
+      console.error('API Error:', error.response.status, errorMessage);
     } else if (error.request) {
+      // Network error
+      errorMessage = 'Network error. Please check your connection.';
       console.error('Network Error:', error.message);
     } else {
+      errorMessage = error.message || 'Request failed';
       console.error('Request Error:', error.message);
     }
+    
+    // Attach friendly message to error
+    (error as any).friendlyMessage = errorMessage;
     return Promise.reject(error);
   }
 );
@@ -84,11 +94,32 @@ export const resetToken = async (): Promise<void> => {
   }
 };
 
+// Pagination response type
+export interface PaginatedResponse {
+  _embedded: {
+    bookingDetailsResponses: any[];
+  };
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
+}
+
 // API Functions using backend proxy
 
-// Fetch all bookings
-export const fetchBookings = async () => {
-  const response = await apiClient.get('/qwiky/bookings');
+// Fetch bookings with pagination
+export const fetchBookings = async (page: number = 0, size: number = 20): Promise<PaginatedResponse> => {
+  const response = await apiClient.get('/qwiky/bookings', {
+    params: { page, size }
+  });
+  return response.data;
+};
+
+// Fetch bookings count for polling
+export const fetchBookingsCount = async (): Promise<{ totalCount: number }> => {
+  const response = await apiClient.get('/qwiky/bookings/count');
   return response.data;
 };
 
@@ -108,6 +139,11 @@ export const cancelBooking = async (bookingId: string) => {
 export const settleBooking = async (bookingId: string) => {
   const response = await apiClient.post(`/qwiky/booking/${bookingId}/settled`);
   return response.data;
+};
+
+// Helper to get friendly error message
+export const getErrorMessage = (error: any): string => {
+  return error?.friendlyMessage || error?.message || 'An error occurred';
 };
 
 export default apiClient;

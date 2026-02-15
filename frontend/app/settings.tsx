@@ -9,12 +9,14 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Toast from '../components/Toast';
 import { getToken, setToken, resetToken } from '../services/api';
+import THEME from '../constants/theme';
 
 export default function Settings() {
   const router = useRouter();
@@ -22,6 +24,16 @@ export default function Settings() {
   const [currentToken, setCurrentToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as const });
+
+  // Handle Android back button
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, []);
 
   useEffect(() => {
     loadCurrentToken();
@@ -31,6 +43,14 @@ export default function Settings() {
     const token = await getToken();
     setCurrentToken(token);
     setTokenInput(token);
+  };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/');
+    }
   };
 
   const handleSaveToken = async () => {
@@ -74,7 +94,7 @@ export default function Settings() {
     );
   };
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => {
     setToast({ visible: true, message, type });
   };
 
@@ -97,9 +117,10 @@ export default function Settings() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={THEME.colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={styles.placeholder} />
@@ -117,7 +138,7 @@ export default function Settings() {
           {/* Token Management Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="key-outline" size={22} color="#1E88E5" />
+              <Ionicons name="key-outline" size={22} color={THEME.colors.primary} />
               <Text style={styles.sectionTitle}>API Token</Text>
             </View>
 
@@ -131,12 +152,12 @@ export default function Settings() {
             <View style={styles.inputCard}>
               <Text style={styles.inputLabel}>Update Token</Text>
               <Text style={styles.inputDescription}>
-                Paste your new Bearer token below when the current one expires.
+                Paste your new Bearer token below when the current one expires (60 days validity).
               </Text>
               <TextInput
                 style={styles.tokenInput}
                 placeholder="Paste your Bearer token here..."
-                placeholderTextColor="#999"
+                placeholderTextColor={THEME.colors.textMuted}
                 value={tokenInput}
                 onChangeText={setTokenInput}
                 multiline
@@ -148,8 +169,9 @@ export default function Settings() {
                 <TouchableOpacity
                   style={[styles.button, styles.resetButton]}
                   onPress={handleResetToken}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="refresh" size={18} color="#666" />
+                  <Ionicons name="refresh" size={18} color={THEME.colors.textSecondary} />
                   <Text style={styles.resetButtonText}>Reset</Text>
                 </TouchableOpacity>
 
@@ -157,6 +179,7 @@ export default function Settings() {
                   style={[styles.button, styles.saveButton]}
                   onPress={handleSaveToken}
                   disabled={loading}
+                  activeOpacity={0.7}
                 >
                   <Ionicons name="checkmark" size={18} color="#FFF" />
                   <Text style={styles.saveButtonText}>
@@ -167,10 +190,31 @@ export default function Settings() {
             </View>
           </View>
 
+          {/* Notifications Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="notifications-outline" size={22} color={THEME.colors.primary} />
+              <Text style={styles.sectionTitle}>Notifications</Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.notificationRow}>
+                <View style={styles.notificationInfo}>
+                  <Text style={styles.notificationTitle}>New Booking Alerts</Text>
+                  <Text style={styles.notificationDesc}>App checks for new bookings every 30 seconds</Text>
+                </View>
+                <View style={styles.enabledBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color={THEME.colors.settled} />
+                  <Text style={styles.enabledText}>Active</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
           {/* App Info Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="information-circle-outline" size={22} color="#1E88E5" />
+              <Ionicons name="information-circle-outline" size={22} color={THEME.colors.primary} />
               <Text style={styles.sectionTitle}>About</Text>
             </View>
 
@@ -184,6 +228,10 @@ export default function Settings() {
                 <Text style={styles.aboutValue}>1.0.0</Text>
               </View>
               <View style={styles.aboutRow}>
+                <Text style={styles.aboutLabel}>Platform</Text>
+                <Text style={styles.aboutValue}>{Platform.OS === 'ios' ? 'iOS' : 'Android'}</Text>
+              </View>
+              <View style={[styles.aboutRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.aboutLabel}>Purpose</Text>
                 <Text style={styles.aboutValue}>Internal Booking Management</Text>
               </View>
@@ -198,7 +246,7 @@ export default function Settings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: THEME.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -206,9 +254,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFF',
+    backgroundColor: THEME.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFEFEF',
+    borderBottomColor: THEME.colors.border,
   },
   backButton: {
     padding: 8,
@@ -217,7 +265,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#000',
+    color: THEME.colors.text,
   },
   placeholder: {
     width: 40,
@@ -242,49 +290,61 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#333',
+    color: THEME.colors.text,
     marginLeft: 10,
   },
   infoCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.borderRadius.lg,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   infoLabel: {
     fontSize: 13,
-    color: '#888',
+    color: THEME.colors.textMuted,
     marginBottom: 8,
   },
   infoValue: {
     fontSize: 13,
-    color: '#333',
+    color: THEME.colors.text,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   inputCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.borderRadius.lg,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   inputLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#333',
+    color: THEME.colors.text,
     marginBottom: 4,
   },
   inputDescription: {
     fontSize: 13,
-    color: '#888',
+    color: THEME.colors.textMuted,
     marginBottom: 12,
     lineHeight: 18,
   },
@@ -293,7 +353,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     fontSize: 13,
-    color: '#333',
+    color: THEME.colors.text,
     minHeight: 100,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
@@ -317,30 +377,62 @@ const styles = StyleSheet.create({
   resetButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: THEME.colors.textSecondary,
   },
   saveButton: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: THEME.colors.primary,
   },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#FFF',
   },
+  notificationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  notificationInfo: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: THEME.colors.text,
+    marginBottom: 4,
+  },
+  notificationDesc: {
+    fontSize: 13,
+    color: THEME.colors.textMuted,
+  },
+  enabledBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.colors.settledBg,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  enabledText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: THEME.colors.settled,
+  },
   aboutRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: THEME.colors.divider,
   },
   aboutLabel: {
     fontSize: 14,
-    color: '#666',
+    color: THEME.colors.textSecondary,
   },
   aboutValue: {
     fontSize: 14,
-    color: '#333',
+    color: THEME.colors.text,
     fontWeight: '500',
   },
 });
