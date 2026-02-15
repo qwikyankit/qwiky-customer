@@ -19,7 +19,7 @@ import ErrorState from '../components/ErrorState';
 import Toast from '../components/Toast';
 import { fetchBookings } from '../services/api';
 
-const STATUS_FILTERS = ['ALL', 'CONFIRMED', 'SETTLED', 'CANCELLED'];
+const STATUS_FILTERS = ['ALL', 'CONFIRMED', 'SETTLED', 'CANCELLED', 'FAILED', 'PAYMENT_PENDING'];
 
 export default function Home() {
   const router = useRouter();
@@ -37,13 +37,15 @@ export default function Home() {
       if (showLoading) setLoading(true);
       setError(null);
       const data = await fetchBookings();
-      // Handle different response structures
-      const bookingsList = Array.isArray(data) ? data : data?.bookings || data?.data || [];
+      // Handle the actual API response structure
+      const bookingsList = data?._embedded?.bookingDetailsResponses || 
+                          (Array.isArray(data) ? data : data?.bookings || data?.data || []);
       setBookings(bookingsList);
       filterBookings(bookingsList, searchQuery, activeFilter);
     } catch (err: any) {
       console.error('Failed to fetch bookings:', err);
-      setError(err.message || 'Failed to load bookings');
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to load bookings';
+      setError(errorMsg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -69,12 +71,13 @@ export default function Home() {
       );
     }
 
-    // Filter by search query (booking ID or phone)
+    // Filter by search query (booking ID, booking code, or phone)
     if (search.trim()) {
       const searchLower = search.toLowerCase().trim();
       filtered = filtered.filter(
         (b) =>
           b.bookingId?.toLowerCase().includes(searchLower) ||
+          b.bookingCode?.toLowerCase().includes(searchLower) ||
           b.phone?.toLowerCase().includes(searchLower) ||
           b.userId?.toLowerCase().includes(searchLower)
       );
@@ -108,8 +111,18 @@ export default function Home() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Qwiky Admin</Text>
-          <Text style={styles.headerSubtitle}>Booking Management</Text>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>Qwiky Admin</Text>
+              <Text style={styles.headerSubtitle}>Booking Management</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings')}
+            >
+              <Ionicons name="settings-outline" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
         </View>
         <BookingListSkeleton />
       </SafeAreaView>
@@ -120,8 +133,18 @@ export default function Home() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Qwiky Admin</Text>
-          <Text style={styles.headerSubtitle}>Booking Management</Text>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>Qwiky Admin</Text>
+              <Text style={styles.headerSubtitle}>Booking Management</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => router.push('/settings')}
+            >
+              <Ionicons name="settings-outline" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
         </View>
         <ErrorState message={error} onRetry={() => loadBookings()} />
       </SafeAreaView>
@@ -139,8 +162,18 @@ export default function Home() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Qwiky Admin</Text>
-        <Text style={styles.headerSubtitle}>Booking Management</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>Qwiky Admin</Text>
+            <Text style={styles.headerSubtitle}>Booking Management</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
+          >
+            <Ionicons name="settings-outline" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Input */}
@@ -149,7 +182,7 @@ export default function Home() {
           <Ionicons name="search" size={20} color="#888" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by Booking ID or Phone"
+            placeholder="Search by Booking ID or Code"
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={handleSearch}
@@ -180,7 +213,7 @@ export default function Home() {
                   activeFilter === filter && styles.filterChipTextActive,
                 ]}
               >
-                {filter}
+                {filter.replace('_', ' ')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -238,6 +271,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EFEFEF',
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
@@ -247,6 +285,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginTop: 2,
+  },
+  settingsButton: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -275,17 +318,17 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EFEFEF',
   },
   filterChip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: '#F5F5F5',
-    marginRight: 10,
+    marginRight: 8,
   },
   filterChipActive: {
     backgroundColor: '#1E88E5',
   },
   filterChipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#666',
   },

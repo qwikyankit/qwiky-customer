@@ -14,6 +14,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return styles.settled;
       case 'CANCELLED':
         return styles.cancelled;
+      case 'FAILED':
+        return styles.failed;
+      case 'PAYMENT_PENDING':
+        return styles.pending;
       default:
         return styles.default;
     }
@@ -27,15 +31,23 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         return styles.settledText;
       case 'CANCELLED':
         return styles.cancelledText;
+      case 'FAILED':
+        return styles.failedText;
+      case 'PAYMENT_PENDING':
+        return styles.pendingText;
       default:
         return styles.defaultText;
     }
   };
 
+  const formatStatus = (s: string) => {
+    return s?.replace('_', ' ').toUpperCase() || 'UNKNOWN';
+  };
+
   return (
     <View style={[styles.badge, getStatusStyle()]}>
       <Text style={[styles.text, getStatusTextStyle()]}>
-        {status?.toUpperCase() || 'UNKNOWN'}
+        {formatStatus(status)}
       </Text>
     </View>
   );
@@ -43,13 +55,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
   text: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -70,6 +82,18 @@ const styles = StyleSheet.create({
   },
   cancelledText: {
     color: '#E53935',
+  },
+  failed: {
+    backgroundColor: '#FFF3E0',
+  },
+  failedText: {
+    color: '#EF6C00',
+  },
+  pending: {
+    backgroundColor: '#FFF8E1',
+  },
+  pendingText: {
+    color: '#F9A825',
   },
   default: {
     backgroundColor: '#F5F5F5',

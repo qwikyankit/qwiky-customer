@@ -6,6 +6,7 @@ import StatusBadge from './StatusBadge';
 interface BookingCardProps {
   booking: {
     bookingId: string;
+    bookingCode?: string;
     status: string;
     bookingDate?: string;
     createdAt?: string;
@@ -14,6 +15,11 @@ interface BookingCardProps {
     userId?: string;
     serviceType?: string;
     serviceName?: string;
+    services?: any[];
+    priceSummary?: {
+      grandTotal?: number;
+      subTotal?: number;
+    };
   };
   onPress: () => void;
 }
@@ -37,7 +43,24 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
 
   const formatAmount = (amount?: number) => {
     if (amount === undefined || amount === null) return '₹0';
-    return `₹${amount.toLocaleString('en-IN')}`;
+    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  };
+
+  // Get amount from various possible fields
+  const getAmount = () => {
+    return booking.priceSummary?.grandTotal || 
+           booking.amount || 
+           booking.totalAmount || 
+           booking.services?.[0]?.totalAmount ||
+           0;
+  };
+
+  // Get service name
+  const getServiceName = () => {
+    if (booking.services && booking.services.length > 0) {
+      return booking.services[0].productName || booking.services[0].serviceName;
+    }
+    return booking.serviceType || booking.serviceName;
   };
 
   return (
@@ -45,8 +68,8 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
       <View style={styles.header}>
         <View style={styles.idContainer}>
           <Ionicons name="receipt-outline" size={18} color="#666" />
-          <Text style={styles.bookingId} numberOfLines={1}>
-            {booking.bookingId?.substring(0, 8) || 'N/A'}...
+          <Text style={styles.bookingCode} numberOfLines={1}>
+            {booking.bookingCode || booking.bookingId?.substring(0, 8) || 'N/A'}
           </Text>
         </View>
         <StatusBadge status={booking.status} />
@@ -61,7 +84,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
             <Text style={styles.detailLabel}>Date</Text>
           </View>
           <Text style={styles.detailValue}>
-            {formatDate(booking.bookingDate || booking.createdAt)}
+            {formatDate(booking.createdAt || booking.bookingDate)}
           </Text>
         </View>
 
@@ -71,18 +94,18 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
             <Text style={styles.detailLabel}>Amount</Text>
           </View>
           <Text style={styles.amountValue}>
-            {formatAmount(booking.amount || booking.totalAmount)}
+            {formatAmount(getAmount())}
           </Text>
         </View>
 
-        {(booking.serviceType || booking.serviceName) && (
+        {getServiceName() && (
           <View style={styles.detailRow}>
             <View style={styles.detailItem}>
               <Ionicons name="briefcase-outline" size={16} color="#888" />
               <Text style={styles.detailLabel}>Service</Text>
             </View>
             <Text style={styles.detailValue}>
-              {booking.serviceType || booking.serviceName || 'N/A'}
+              {getServiceName()}
             </Text>
           </View>
         )}
@@ -130,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  bookingId: {
+  bookingCode: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333',

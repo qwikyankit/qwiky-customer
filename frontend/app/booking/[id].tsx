@@ -67,7 +67,8 @@ export default function BookingDetail() {
       setBooking({ ...booking, status: 'SETTLED' });
       showToast('Booking settled successfully!', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to settle booking', 'error');
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to settle booking';
+      showToast(errorMsg, 'error');
     } finally {
       setActionLoading(false);
       setConfirmModal({ visible: false, type: null });
@@ -83,7 +84,8 @@ export default function BookingDetail() {
       setBooking({ ...booking, status: 'CANCELLED' });
       showToast('Booking cancelled successfully!', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Failed to cancel booking', 'error');
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to cancel booking';
+      showToast(errorMsg, 'error');
     } finally {
       setActionLoading(false);
       setConfirmModal({ visible: false, type: null });
@@ -113,11 +115,34 @@ export default function BookingDetail() {
 
   const formatAmount = (amount?: number) => {
     if (amount === undefined || amount === null) return '₹0';
-    return `₹${amount.toLocaleString('en-IN')}`;
+    return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  };
+
+  const getAmount = () => {
+    return booking?.priceSummary?.grandTotal || 
+           booking?.amount || 
+           booking?.totalAmount || 
+           booking?.services?.[0]?.totalAmount ||
+           0;
+  };
+
+  const getServiceName = () => {
+    if (booking?.services && booking.services.length > 0) {
+      return booking.services[0].productName || booking.services[0].serviceName;
+    }
+    return booking?.serviceType || booking?.serviceName;
+  };
+
+  const getAddress = () => {
+    const addr = booking?.bookingAddress;
+    if (!addr) return null;
+    return `${addr.addressLine1 || ''}${addr.addressLine2 ? ', ' + addr.addressLine2 : ''}\n${addr.locality || ''}\n${addr.city || ''}, ${addr.state || ''} ${addr.pincode || ''}`;
   };
 
   const isSettled = booking?.status?.toUpperCase() === 'SETTLED';
   const isCancelled = booking?.status?.toUpperCase() === 'CANCELLED';
+  const isFailed = booking?.status?.toUpperCase() === 'FAILED';
+  const canTakeAction = !isSettled && !isCancelled && !isFailed;
 
   if (!booking) {
     return (
@@ -172,7 +197,7 @@ export default function BookingDetail() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Booking Details</Text>
-          <Text style={styles.headerId}>#{booking.bookingId?.substring(0, 8)}</Text>
+          <Text style={styles.headerId}>{booking.bookingCode || `#${booking.bookingId?.substring(0, 8)}`}</Text>
         </View>
         <StatusBadge status={booking.status} />
       </View>
@@ -190,28 +215,46 @@ export default function BookingDetail() {
           </View>
 
           <View style={styles.infoCard}>
+            <InfoRow label="Booking Code" value={booking.bookingCode || 'N/A'} />
             <InfoRow label="Booking ID" value={booking.bookingId || 'N/A'} />
             <InfoRow label="Status" value={booking.status || 'N/A'} />
             <InfoRow
-              label="Date"
-              value={formatDate(booking.bookingDate || booking.createdAt)}
+              label="Created"
+              value={formatDate(booking.createdAt)}
             />
             <InfoRow
-              label="Amount"
-              value={formatAmount(booking.amount || booking.totalAmount)}
+              label="Total Amount"
+              value={formatAmount(getAmount())}
               highlight
             />
-            {(booking.serviceType || booking.serviceName) && (
+            {getServiceName() && (
               <InfoRow
                 label="Service"
-                value={booking.serviceType || booking.serviceName}
+                value={getServiceName()}
               />
             )}
-            {booking.paymentMode && (
-              <InfoRow label="Payment Mode" value={booking.paymentMode} />
+            {booking.services?.[0]?.slotStart && (
+              <InfoRow
+                label="Slot Time"
+                value={formatDate(booking.services[0].slotStart)}
+              />
             )}
           </View>
         </View>
+
+        {/* Address Section */}
+        {booking.bookingAddress && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="location-outline" size={22} color="#1E88E5" />
+              <Text style={styles.sectionTitle}>Booking Address</Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <Text style={styles.addressText}>{getAddress()}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Guest Info Section */}
         <View style={styles.section}>
@@ -235,7 +278,7 @@ export default function BookingDetail() {
                 />
                 <InfoRow
                   label="Phone"
-                  value={user?.phone || user?.phoneNumber || booking.phone || 'N/A'}
+                  value={user?.phone || user?.phoneNumber || user?.mobile || booking.phone || 'N/A'}
                   icon="call"
                 />
                 <InfoRow
@@ -244,14 +287,46 @@ export default function BookingDetail() {
                   icon="mail"
                 />
                 <InfoRow
-                  label="Address"
-                  value={user?.address || booking.address || 'N/A'}
-                  icon="location"
+                  label="User ID"
+                  value={booking.userId || 'N/A'}
+                  icon="finger-print"
                 />
               </>
             )}
           </View>
         </View>
+
+        {/* Payment Info */}
+        {booking.paymentTransactionResponses && booking.paymentTransactionResponses.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="card-outline" size={22} color="#1E88E5" />
+              <Text style={styles.sectionTitle}>Payment Information</Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <InfoRow
+                label="Payment Status"
+                value={booking.paymentTransactionResponses[0].status || 'N/A'}
+              />
+              <InfoRow
+                label="Payment Mode"
+                value={booking.paymentTransactionResponses[0].transactionMode || 'N/A'}
+              />
+              <InfoRow
+                label="Amount Paid"
+                value={formatAmount(booking.paymentTransactionResponses[0].amount)}
+                highlight
+              />
+              {booking.paymentTransactionResponses[0].remarks && (
+                <InfoRow
+                  label="Remarks"
+                  value={booking.paymentTransactionResponses[0].remarks}
+                />
+              )}
+            </View>
+          </View>
+        )}
 
         <View style={styles.spacer} />
       </ScrollView>
@@ -262,23 +337,23 @@ export default function BookingDetail() {
           style={[
             styles.actionButton,
             styles.settleButton,
-            isSettled && styles.disabledButton,
+            !canTakeAction && styles.disabledButton,
           ]}
           onPress={() => setConfirmModal({ visible: true, type: 'settle' })}
-          disabled={isSettled || isCancelled}
+          disabled={!canTakeAction}
         >
           <Ionicons
             name="checkmark-circle"
             size={22}
-            color={isSettled || isCancelled ? '#AAA' : '#FFF'}
+            color={!canTakeAction ? '#AAA' : '#FFF'}
           />
           <Text
             style={[
               styles.actionButtonText,
-              (isSettled || isCancelled) && styles.disabledButtonText,
+              !canTakeAction && styles.disabledButtonText,
             ]}
           >
-            {isSettled ? 'Already Settled' : 'Settle Booking'}
+            {isSettled ? 'Settled' : 'Settle'}
           </Text>
         </TouchableOpacity>
 
@@ -286,23 +361,23 @@ export default function BookingDetail() {
           style={[
             styles.actionButton,
             styles.cancelButton,
-            isCancelled && styles.disabledButton,
+            !canTakeAction && styles.disabledButton,
           ]}
           onPress={() => setConfirmModal({ visible: true, type: 'cancel' })}
-          disabled={isCancelled || isSettled}
+          disabled={!canTakeAction}
         >
           <Ionicons
             name="close-circle"
             size={22}
-            color={isCancelled || isSettled ? '#AAA' : '#FFF'}
+            color={!canTakeAction ? '#AAA' : '#FFF'}
           />
           <Text
             style={[
               styles.actionButtonText,
-              (isCancelled || isSettled) && styles.disabledButtonText,
+              !canTakeAction && styles.disabledButtonText,
             ]}
           >
-            {isCancelled ? 'Already Cancelled' : 'Cancel Booking'}
+            {isCancelled ? 'Cancelled' : 'Cancel'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -436,6 +511,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  addressText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 22,
+  },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -447,7 +527,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   spacer: {
-    height: 100,
+    height: 120,
   },
   actionContainer: {
     position: 'absolute',
